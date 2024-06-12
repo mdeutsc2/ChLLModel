@@ -1,0 +1,22 @@
+nsteps: 5
+progress: true
+simname: "32x32x5_test_pattern"
+dimensions: (480, 480, 10)
+dt: 0.1
+CC: 1.0
+K: 1.0
+isave: 5
+savedata: "energies"
+checkpoints:
+  - 0
+loadckpt: ""
+defectfinding: false
+periodic: false
+defects:
+  ndefects: [0.5,-0.5]
+  spacing: (8,0)
+phi:
+  - (1.57079, 5)
+thermobool: true
+kbt:
+  - (1.2,5)
