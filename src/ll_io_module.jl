@@ -5,6 +5,7 @@ using JLD2
 using YAML
 using Dates
 using OrderedCollections
+using WriteVTK
 
 import ..SimParams
 
@@ -17,6 +18,7 @@ export write_E
 export write_T
 export write_xyzv
 export setup_env
+export write_vtk
 
 """
     fill_vector(::Vector{Tuple{Float64, Float64, Int64}})::Vector{Float64}
@@ -63,6 +65,17 @@ function write_T(filename,istep,dtheta,summedT)
     end
     close(f)
     return nothing
+end
+
+function write_vtk(dtype,filename,params,istep,nx,ny,nz,E)
+    nx = convert.(dtype,nx)
+    ny = convert.(dtype,ny)
+    nz = convert.(dtype,nz)
+    E = convert.(dtype,E)
+    vtk_grid(filename, 1:params.dimension[1], 1:params.dimensions[2],1:params.dimensions[3], ascii=true) do vtk
+        vtk["director", VTKPointData()] = (nx,ny,nz)
+        vtk["Energy",VTKPointData()] = E
+    end
 end
 
 function write_xyzv(dtype,filename,params,istep,nx,ny,nz,E)
@@ -163,7 +176,6 @@ function create_checkpoint(params::SimParams,istep,nx,ny,nz,E)
     end # close file
     return filename
 end
-
 
 function load_checkpoint(filename::String)
     file = jldopen(filename, "r")

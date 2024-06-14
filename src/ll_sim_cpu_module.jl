@@ -7,6 +7,7 @@ import ..create_checkpoint
 import ..find_defects
 import ..fill_vector
 import ..write_E
+import ..write_vtk
 import ..write_array_data
 export run_sim_cpu 
 
@@ -590,7 +591,8 @@ function run_sim_cpu(params::SimParams;save::Bool=true,ckpsave::Bool=false,ckplo
                     find_defects(params,nx,ny,nz)
                 end
                 #write_array_data(params,istep,nx,ny,nz,E)
-                write_xyzv(Float32,string("vectors_"*params.simname*".csv"),params,istep,nx,ny,nz,E)
+                #write_xyzv(Float32,string("vectors_"*params.simname*".csv"),params,istep,nx,ny,nz,E)
+                write_vtk(Float32,string("vectors_"*params.simname*".csv"),params,istep,nx,ny,nz,E)
             end
             write_E(string("energy_"*params.simname*".csv"),istep,sum(E)/N3,sum(KE)/N3) #energy per particle be saved
         end 
