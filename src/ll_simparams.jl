@@ -22,7 +22,7 @@ mutable struct SimParams
     phi::Vector{Tuple} # top anchoring angle relative to the x axis in degrees
     thermobool::Bool # turn thermostat on and off
     kbt::Vector{Tuple} #temperature 
-    flow :: Bool # turn Lattice-Boltzmann dynmaics 
+    #flow :: Bool # turn Lattice-Boltzmann dynmaics 
 end 
 
 default_params = SimParams(50_000, # nsteps
@@ -33,7 +33,7 @@ default_params = SimParams(50_000, # nsteps
                             1.0, # CC
                             1.0, # K
                             2000, # isave
-                            "both", # savedata (does nothing if not saving to hdf5 files)
+                            "energies", # savedata (does nothing if not saving to hdf5 files)
                             [0], # checkpoints, if 0 do not save any checkpoints
                             "", # load checkpoint
                             false, # defectfinding

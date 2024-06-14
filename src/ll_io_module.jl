@@ -5,7 +5,7 @@ using JLD2
 using YAML
 using Dates
 using OrderedCollections
-using WriteVTK
+using WriteVTK,Printf
 
 import ..SimParams
 
@@ -72,7 +72,10 @@ function write_vtk(dtype,filename,params,istep,nx,ny,nz,E)
     ny = convert.(dtype,ny)
     nz = convert.(dtype,nz)
     E = convert.(dtype,E)
-    vtk_grid(filename, 1:params.dimension[1], 1:params.dimensions[2],1:params.dimensions[3], ascii=true) do vtk
+    fmt_str = string(split(filename,".")[1]*"_%06i")
+    fmt = Printf.Format(fmt_str)
+    filename = Printf.format(fmt,istep)
+    vtk_grid(filename, 1:params.dimensions[1], 1:params.dimensions[2],1:params.dimensions[3], ascii=true) do vtk
         vtk["director", VTKPointData()] = (nx,ny,nz)
         vtk["Energy",VTKPointData()] = E
     end

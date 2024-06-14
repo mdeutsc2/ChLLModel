@@ -1,4 +1,4 @@
-nsteps: 5000
+nsteps: 50000
 progress: true
 simname: "32x32x32_test_pattern"
 dimensions: (32, 32, 32)
@@ -13,10 +13,10 @@ loadckpt: ""
 defectfinding: false
 periodic: false
 defects:
-  ndefects: [0.5,-0.5]
+  ndefects: []
   spacing: (8,0)
 phi:
-  - (1.57079, 5000)
+  - (1.57079, 50000)
 thermobool: true
 kbt:
-  - (1.2,5000)
+  - (0.8,50000)

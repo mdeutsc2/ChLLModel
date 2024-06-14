@@ -253,8 +253,6 @@ function position(params::SimParams,nx::Array{Float64,3},ny::Array{Float64,3},nz
     return nx,ny,nz, KE
 end
 
-
-
 function normalize(nx,ny,nz)
     s = sqrt.(nx.*nx .+ ny.*ny .+ nz.*nz)
     nx = nx./s
@@ -349,8 +347,6 @@ function setup_defects_1(params::SimParams,nx,ny,nz)
     return nx,ny,nz
 
 end
-
-
 """
 Function to set up antagonistic anchoring for line defects on a single (bottom) substrate
 """
@@ -533,11 +529,14 @@ function run_sim_cpu(params::SimParams;save::Bool=true,ckpsave::Bool=false,ckplo
         #nz_top = nz[:,:,params.dimensions[3]] 
     else
         #normalizing directors
-        nx .= 0.0
-        ny .= 1.0
-        nz .= 0.0
+        nx[:,:,1] .= 0.0
+        ny[:,:,1] .= 1.0
+        nz[:,:,1] .= 0.0
         total_defects = 1
         nx,ny,nz = normalize(nx,ny,nz)
+        nx1 = nx[:,:,1]
+        ny1 = ny[:,:,1]
+        nz1 = nz[:,:,1]
     end
     
     # for k in 1:params.dimensions[3] # for two disclination lines
