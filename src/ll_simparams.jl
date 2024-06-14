@@ -25,24 +25,23 @@ mutable struct SimParams
     flow :: Bool # turn Lattice-Boltzmann dynmaics 
 end 
 
-default_params = SimParams(
-                   50_000, # nsteps
-                   true, # ProgressMeter
-                   "80x80x10_400_000steps_0.1kbt_rot_cont", #simname
-                   (80,80,10), # Nx,Ny,Nz
-                   0.1, # dt
-                   1.0, # CC
-                   1.0, # K
-                   2000, # isave
-                   "both", # savedata (does nothing if not saving to hdf5 files)
-                   [0], # checkpoints, if 0 do not save any checkpoints
-                   "", # load checkpoint
-                   false, # defectfinding
-                   false, # periodic
-                   Dict("ndefects" => [0.5,-0.5], "spacing" => (8,0)), # defects
-                   [(pi/2,deg2rad(90+4*122),400_000)],#LinRange(pi/2,-pi/2,2_000),
-                   true, # thermobool
-                   [(0.5,0.1,15_000),(0.1,400_000)])
+default_params = SimParams(50_000, # nsteps
+                            true, # ProgressMeter
+                            "80x80x10_400_000steps_0.1kbt_rot_cont", #simname
+                            (80,80,10), # Nx,Ny,Nz
+                            0.1, # dt
+                            1.0, # CC
+                            1.0, # K
+                            2000, # isave
+                            "both", # savedata (does nothing if not saving to hdf5 files)
+                            [0], # checkpoints, if 0 do not save any checkpoints
+                            "", # load checkpoint
+                            false, # defectfinding
+                            false, # periodic
+                            Dict("ndefects" => [0.5,-0.5], "spacing" => (8,0)), # defects
+                            [(pi/2,deg2rad(90+4*122),400_000)],#LinRange(pi/2,-pi/2,2_000),
+                            true, # thermobool
+                            [(0.5,0.1,15_000),(0.1,400_000)]) #kbt
 
 function SimParams(d::Dict)
     function parse_defects(d)
