@@ -520,8 +520,8 @@ function run_sim_cpu(params::SimParams;save::Bool=true,ckpsave::Bool=false,ckplo
 
     if total_defects > 0
         # setting up the defect structure
-        #nx,ny,nz = setup_defects_1(params,nx,ny,nz)
-        nx,ny,nz = setup_lines_1(params,nx,ny,nz)
+        nx,ny,nz = setup_defects_1(params,nx,ny,nz)
+        #nx,ny,nz = setup_lines_1(params,nx,ny,nz)
         nx,ny,nz = normalize(nx,ny,nz)
          #setting original defect structure
         nx1 = nx[:,:,1]

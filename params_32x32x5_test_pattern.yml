@@ -1,11 +1,11 @@
-nsteps: 5
+nsteps: 5000
 progress: true
-simname: "32x32x5_test_pattern"
-dimensions: (480, 480, 10)
+simname: "32x32x32_test_pattern"
+dimensions: (32, 32, 32)
 dt: 0.1
 CC: 1.0
 K: 1.0
-isave: 5
+isave: 500
 savedata: "energies"
 checkpoints:
   - 0
@@ -16,7 +16,7 @@ defects:
   ndefects: [0.5,-0.5]
   spacing: (8,0)
 phi:
-  - (1.57079, 5)
+  - (1.57079, 5000)
 thermobool: true
 kbt:
-  - (1.2,5)
+  - (1.2,5000)
