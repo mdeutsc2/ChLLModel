@@ -10,7 +10,7 @@ program chll
   real(real64),allocatable :: nx(:,:,:),ny(:,:,:),nz(:,:,:)
   integer(int64),allocatable :: s(:,:,:) ! chirality
   integer(int64),allocatable :: sl1(:),sl2(:) ! sublattices corresponding to odds(1) and evens(2)
-  integer(int64),allocatable :: naccept(:,:,:),nflip(:,:,:),dope(:,:,:)
+  integer(int64),allocatable :: dope(:,:,:)!naccept(:,:,:),nflip(:,:,:)
   real(real64),allocatable :: rand1(:,:),rand2(:,:)
   real(real64) :: d = 0.01d0 ! size of spin rotation perturbation
   real(real64) :: KK = 1.d0 !
@@ -19,7 +19,7 @@ program chll
   real(real64) :: cosphi,sinphi,costh,sinth,phi,pi,twopi,rnd
   real(real64) :: faccept,e_excess,paccept,total_energy
   integer(int64) :: nsub,nsub1,nsub2,index
-  integer(int64) :: i,j,k,istep,itry
+  integer(int64) :: i,j,k,istep,itry,naccept,nflip
   real(real64) :: scale,x1,x2,z1,z2 ! for output
 
   ni = 128
@@ -35,8 +35,8 @@ program chll
   allocate(nz(ni,nj,nk))
   allocate(s(ni,nj,nk))
   allocate(dope(ni,nj,nk))
-  allocate(naccept(ni,nj,nk))
-  allocate(nflip(ni,nj,nk))
+  !allocate(naccept(ni,nj,nk))
+  !allocate(nflip(ni,nj,nk))
   allocate(sl1(nsub))
   allocate(sl2(nsub))
   allocate(rand1(nsub,2))
@@ -83,28 +83,29 @@ program chll
         enddo
      enddo
   enddo
-  !$acc enter data copyin(nx,ny,nz,s,sl1,sl2,rand1,rand2,naccept,nflip)
+  !$acc enter data copyin(nx,ny,nz,s,sl1,sl2,rand1,rand2)
   do istep = 1,nsteps
-     naccept(:,:,:) = 0
-     nflip(:,:,:) = 0
+     naccept = 0!(:,:,:) = 0
+     nflip = 0!(:,:,:) = 0
      !do itry = 1,n3
      call random_number(rand1)
      call random_number(rand2)
-     !$acc update device(rand1,rand2,naccept,nflip)
-     call evolve(sl1,nx,ny,nz,s,rand1,rand2,KK,d,nsub)
+     !$acc update device(rand1,rand2)
+     call evolve(sl1,nx,ny,nz,s,rand1,rand2,KK,d,nsub,naccept,nflip)
      !$acc update device(rand1,rand2)
      call random_number(rand1)
      call random_number(rand2)
-     call evolve(sl2,nx,ny,nz,s,rand1,rand2,KK,d,nsub)
-     !$acc update host(naccept,nflip)
-     paccept = float(sum(naccept))/float(n3) ! % of accepted director rotation
+     call evolve(sl2,nx,ny,nz,s,rand1,rand2,KK,d,nsub,naccept,nflip)
+     !paccept = float(sum(naccept))/float(n3) ! % of accepted director rotation
+     paccept = float(naccept)/float(n3)
      if (paccept.lt.0.4d0) then
         d = d*0.995
      elseif (paccept.gt.0.6d0) then
         d = d/0.995
      endif
-     if (mod(istep,50).eq.0) then
-        faccept = float(sum(nflip))/float(n3)
+     if (mod(istep,100).eq.0) then
+        !faccept = float(sum(nflip))/float(n3)
+        faccept = float(nflip)/float(n3)
         ! calculate total energy
         total_energy = etot(nx,ny,nz,s,KK,ni,nj,nk)
         e_excess = sum(float(s))/float(ni*nj*nk)
@@ -113,7 +114,7 @@ program chll
      ! calculate enantiomeric excess
      endif
   enddo
-  !$acc exit data copyout(nx,ny,nz,s,sl1,sl2,rand1,rand2,naccept,nflip)
+  !$acc exit data copyout(nx,ny,nz,s,sl1,sl2,rand1,rand2)
 
   open(unit=11,file='LLMC-configa.dat',status='unknown')
   open(unit=12,file='LLMC-configb.dat',status='unknown')
@@ -140,20 +141,21 @@ program chll
   close(unit=11)
   close(unit=12)
 
-  deallocate(nx,ny,nz,nflip,naccept,s,dope)
+  !deallocate(nx,ny,nz,nflip,naccept,s,dope)
+  deallocate(nx,ny,nz,s,dope)
   
 contains
-	subroutine evolve(sl,nx,ny,nz,s,rand1,rand2,KK,d,nsub)
+	subroutine evolve(sl,nx,ny,nz,s,rand1,rand2,KK,d,nsub,naccept,nflip)
 		implicit none
 		integer(int64), intent(in) :: sl(:),nsub
 		real(real64),intent(in out) :: nx(:,:,:),ny(:,:,:),nz(:,:,:)
-		integer(int64), intent(in out) :: s(:,:,:)
+		integer(int64), intent(in out) :: s(:,:,:),naccept,nflip
 		real(real64),intent(in) :: KK,d,rand1(:,:),rand2(:,:)
 		real(real64) :: dcosphi,dsinphi,enew,eold,nnx,nny,nnz,ux,uy,uz,vx,vy,vz,xxnew,yynew,zznew,rsq,phi
 		integer(int64) :: itry,i,j,k,ip1,im1,jp1,jm1,kp1,km1,snew
 		real(real64) :: dott,crossx,crossy,crossz,sfac
 		!do itry = 1,nsub
-		do concurrent(itry = 1:nsub) local(ip1,im1,jp1,jm1,kp1,km1,nnx,nny,nnz,dott,crossx,crossy,crossz,eold,enew,sfac) shared(nx,ny,nz,s,sl,rand1,rand2)
+		do concurrent(itry = 1:nsub) local(ip1,im1,jp1,jm1,kp1,km1,nnx,nny,nnz,dott,crossx,crossy,crossz,eold,enew,sfac) shared(nx,ny,nz,s,sl,rand1,rand2) reduce(+:naccept) reduce(+:nflip)
 			index = sl(itry)
 			i = 1+mod(index-1,ni)
 			j = 1+int(mod((index-1),(ni*nj))/(ni))
@@ -299,13 +301,13 @@ contains
 		   nx(i,j,k) = nnx
 		   ny(i,j,k) = nny
 		   nz(i,j,k) = nnz
-		   naccept(i,j,k) = naccept(i,j,k) + 1
+		   naccept = naccept + 1
 		 else
 			if (rand2(itry,1).le.dexp(-(enew-eold)/kbt)) then
 			  nx(i,j,k) = nnx
 			  ny(i,j,k) = nny
 			  nz(i,j,k) = nnz
-			  naccept(i,j,k) = naccept(i,j,k) + 1
+			  naccept = naccept + 1
 			endif
 		 endif
 		 
@@ -412,11 +414,11 @@ contains
 			! metropolis
 			if (enew.lt.eold) then
 			   s(i,j,k) = snew
-			   nflip(i,j,k) = nflip(i,j,k) + 1
+			   nflip = nflip + 1
 			else
 			   if (rand2(itry,2).le.dexp(-(enew-eold)/kbt)) then
 				  s(i,j,k) = snew
-				  nflip(i,j,k) = nflip(i,j,k) + 1
+				  nflip = nflip + 1
 			   endif
 			endif
 		 enddo ! end 1st sublattice
@@ -476,35 +478,37 @@ contains
     implicit none
     real(real64),intent(in) :: nx(:,:,:),ny(:,:,:),nz(:,:,:),KK
     integer(int64),intent(in) :: s(:,:,:),ni,nj,nk
-    real(real64) :: ddot,crossx,crossy,crossz,sfac
-    real(real64),allocatable::e(:,:,:)
+    real(real64) :: ddot,crossx,crossy,crossz,sfac,e
+    !real(real64),allocatable::e(:,:,:)
     integer(int64) :: i,j,k,ip1,jp1,kp1
    
-    allocate(e(ni,nj,nk))
-    e(:,:,:) = 0.0d0
-    do concurrent(k=1:nk,j=1:nj,i=1:ni) local(ip1,jp1,kp1,ddot,crossx,crossy,crossz,sfac)
+    !allocate(e(ni,nj,nk))
+    !e(:,:,:) = 0.0d0
+    e = 0.0d0
+    do concurrent(k=1:nk,j=1:nj,i=1:ni) local(ip1,jp1,kp1,ddot,crossx,crossy,crossz,sfac) reduce(+:e)
        ip1 = mod(i,ni) + 1
        jp1 = mod(j,nj) + 1
        kp1 = k+1
        ddot = nx(i,j,k)*nx(ip1,j,k) + ny(i,j,k)*ny(ip1,j,k)+nz(i,j,k)*nz(ip1,j,k)
        crossx = ny(i,j,k)*nz(ip1,j,k)-nz(i,j,k)*ny(ip1,j,k)
        sfac = 0.5d0*(s(i,j,k)+s(ip1,j,k))
-       e(i,j,k) = e(i,j,k) + (1.0d0 - ddot*ddot) - KK*ddot*crossx*sfac
+       e = e + (1.0d0 - ddot*ddot) - KK*ddot*crossx*sfac
 
        ddot = nx(i,j,k)*nx(ip1,jp1,k) + ny(i,j,k)*ny(i,jp1,k)+nz(i,j,k)*nz(i,jp1,k)
        crossy = nz(i,j,k)*nx(i,jp1,k)-nx(i,j,k)*nz(i,jp1,k)
        sfac = 0.5d0*(s(i,j,k)+s(i,jp1,k))
-       e(i,j,k) = e(i,j,k) + (1.0d0 - ddot*ddot) - KK*ddot*crossy*sfac
+       e = e + (1.0d0 - ddot*ddot) - KK*ddot*crossy*sfac
        
        if (kp1 .le. nk) then
        ddot = nx(i,j,k)*nx(i,j,kp1) + ny(i,j,k)*ny(i,j,kp1)+nz(i,j,k)*nz(i,j,kp1)
        crossz = nx(i,j,k)*ny(i,j,kp1) - ny(i,j,k)*nx(i,j,kp1)
        sfac = 0.5d0*(s(i,j,k)+s(i,j,kp1))
-       e(i,j,k) = e(i,j,k) + (1.0d0 - ddot*ddot) - KK*ddot*crossz*sfac
+       e = e + (1.0d0 - ddot*ddot) - KK*ddot*crossz*sfac
        endif
     enddo
-    etot = sum(e)/float(ni*nj*nk)
-    deallocate(e)    
+    etot = e/float(ni*nj*nk)
+    !etot = sum(e)/float(ni*nj*nk)
+    !deallocate(e)    
   end function etot
      
 end program chll

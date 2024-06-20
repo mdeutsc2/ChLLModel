@@ -5,8 +5,8 @@
 
 FC = nvfortran
 
-#FFLAGS = -stdpar=multicore -fast -Minfo -Mpreprocess
-FFLAGS = -stdpar=gpu -fast -Minfo -acc -Mpreprocess
+FFLAGS = -stdpar=multicore -fast -Minfo -Mpreprocess
+#FFLAGS = -stdpar=gpu -fast -Minfo -acc -Mpreprocess
 
 SRCS = chll.f90
 
