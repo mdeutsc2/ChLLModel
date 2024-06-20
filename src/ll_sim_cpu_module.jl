@@ -147,11 +147,6 @@ function torque(params::SimParams,tx::Array{Float64,3},ty::Array{Float64,3},tz::
         dp = nx[i,j,k]*nx[inab,jnab,knab] + ny[i,j,k]*ny[inab,jnab,knab]+nz[i,j,k]*nz[inab,jnab,knab]
         #println(i,j,k,", (",nx[i,j,k],",",ny[i,j,k],",",nz[i,j,k],") ",inab,jnab,knab,"(",nx[inab,jnab,knab],",",ny[inab,jnab,knab],",",nz[inab,jnab,knab],") : ",dp)
 
-        E[i,j,k] = E[i,j,k] + (1-(dp*dp))
-        #half_E = 0.5*(1-(dp*dp))
-        #E[i,j,k] += half_E
-        #E[inab,jnab,knab] += half_E
-
         #calculate the x,y,z components of the cross product between the same two vectors
         cx = ny[i,j,k]*nz[inab,jnab,knab]-nz[i,j,k]*ny[inab,jnab,knab]
         cy = nz[i,j,k]*nx[inab,jnab,knab]-nx[i,j,k]*nz[inab,jnab,knab]
@@ -170,6 +165,10 @@ function torque(params::SimParams,tx::Array{Float64,3},ty::Array{Float64,3},tz::
         tz[i,j,k] += tzbond
         tz[inab,jnab,knab] -= tzbond
 
+        E[i,j,k] = E[i,j,k] + (1-(dp*dp))
+        #half_E = 0.5*(1-(dp*dp))
+        #E[i,j,k] += half_E
+        #E[inab,jnab,knab] += half_E
         #i,j+1,K
         inab,knab = i,k
         params.periodic ? jnab = ifelse(j+1>params.dimensions[2],1,j+1) : jnab = ifelse(j+1>params.dimensions[2],j,j+1)
