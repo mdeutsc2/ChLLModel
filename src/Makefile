@@ -15,17 +15,21 @@ OBJS = $(SRCS:.f90=.o)
 EXEC = chll
 # Default target
 
-all: $(EXEC)
+all: standalone f2py
 
-
-# linker
-$(EXEC): $(OBJS)
+# linker for standalone executable
+standalone: $(OBJS)
 	$(FC) $(FFLAGS) -o $@ $(OBJS)
 
 # compilation
 %.o: %.f90
 	$(FC) $(FFLAGS) -c $< -o $@
 
+# f2py rule
+f2py: $(SRCS)
+	f2py -c -m chll_module $(SRCS)
 
 clean:
 	rm -f $(EXEC) $(OBJS)
+
+

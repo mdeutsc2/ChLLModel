@@ -1,1 +1,0 @@
-plot 'LLMC-configa.dat' w lines lw 6, 'LLMC-configb.dat' w lines lw 6
