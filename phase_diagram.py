@@ -28,4 +28,5 @@ for temp in np.arange(0.05,1.51,0.05):
 		init_aligned(sim)
 		sim.init()
 		sim.run(10000,50,save=True)
+		sim.plot_config()
 	

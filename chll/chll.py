@@ -244,6 +244,26 @@ class ChLLSim:
 			else:
 				print(f"> ERROR: '{self.simpath}' does not exist")
 				exit()
+				
+	def plot_config(self):
+		import matplotlib.pyplot as plt
+
+		X,Z = np.meshgrid(np.arange(0,self.ni),np.arange(0,self.nk))
+		mp = int(np.floor(self.nj/2))
+		u = self.nx[:,mp,:]
+		v = self.ny[:,mp,:]
+		w = self.nz[:,mp,:]
+		s_color = self.s[:,mp,:]
+
+		fig = plt.figure(figsize=(10,10))
+		ax = fig.add_subplot(111)
+
+		ax.quiver(X,Z,u,w,s_color,pivot='mid',headlength=0,headwidth=0,headaxislength=0,scale_units='xy',scale=0.75,cmap='coolwarm')
+		ax.set_xlabel('X')
+		ax.set_ylabel('Z')
+		ax.set_title(self.name)
+		pngname = self.name+".png"
+		plt.savefig(os.path.join(self.simpath,pngname))
 		
 	def output_old(self):
 		fa = open(self.name+".dat","w")
