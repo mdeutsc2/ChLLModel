@@ -18,7 +18,7 @@ module chll_mod
 	  integer(kind=int64), intent(in) :: ni,nj,nk
 	  real(kind=real64) :: rnd,costh,sinth,phi,cosphi,sinphi,pi,twopi
 	  integer(kind=int64) :: i,j,k,nsub1,nsub2,idx
-	  pi = 4.0d0*datan(1.0d0)
+	  pi = 4.0d0*atan(1.0d0)
 	  twopi = 2.0d0*pi
 	  ! setting up initial random state
 	  do i = 1,ni
@@ -32,11 +32,11 @@ module chll_mod
 			   dope(i,j,k) = 0
 			   call random_number(rnd)
 			   costh = 2.d0*(rnd-0.5)
-			   sinth = dsqrt(1.d0-costh*costh)
+			   sinth = sqrt(1.d0-costh*costh)
 			   call random_number(rnd)
 			   phi = rnd*twopi
-			   cosphi = dcos(phi)
-			   sinphi = dsin(phi)
+			   cosphi = cos(phi)
+			   sinphi = sin(phi)
 			   nx(i,j,k) = sinth*cosphi
 			   ny(i,j,k) = sinth*sinphi
 			   nz(i,j,k) = costh
@@ -122,7 +122,9 @@ module chll_mod
 	    pi = 4.0d0*datan(1.0d0)
 	    twopi = 2.0d0*pi
 		!do itry = 1,nsub
-		do concurrent(itry = 1:nsub) local(ip1,im1,jp1,jm1,kp1,km1,nnx,nny,nnz,dott,crossx,crossy,crossz,eold,enew,sfac) shared(nx,ny,nz,s,sl,rand1,rand2) reduce(+:naccept) reduce(+:nflip)
+		!do concurrent(itry = 1:nsub) local(ip1,im1,jp1,jm1,kp1,km1,nnx,nny,nnz,dott,crossx,crossy,crossz,eold,enew,sfac) shared(nx,ny,nz,s,sl,rand1,rand2) reduce(+:naccept) reduce(+:nflip)
+		!$acc parallel loop reduction(+:naccept,nflip) private(ip1,im1,jp1,jm1,kp1,km1,nnx,nny,nnz,dott,crossx,crossy,crossz,eold,enew,sfac) present(nx,ny,nz,s,sl,rand1,rand2)
+		do itry = 1,nsub
 			index = sl(itry)
 			i = 1+mod(index-1,ni)
 			j = 1+int(mod((index-1),(ni*nj))/(ni))
@@ -139,56 +141,14 @@ module chll_mod
 			nnx = nx(i,j,k)
 			nny = ny(i,j,k)
 			nnz = nz(i,j,k)
-			#eold = energy(nx,ny,nz,nnx,nny,nnz,s(i,j,k),s,KK,i,j,k,ip1,im1,jp1,jm1,kp1,km1,ni,nj,nk)
-			eold = 0.0d0
-			if (ip1 .le. ni) then
-				dott = nnx*nx(ip1,j,k) + nny*ny(ip1,j,k) + nnz*nz(ip1,j,k)
-				crossx = nny*nz(ip1,j,k) - nnz*ny(ip1,j,k)
-				sfac = 0.5d0*(s(i,j,k)+s(ip1,j,k))
-				eold = eold + (1.0d0-dott*dott)-KK*dott*crossx*sfac
-			endif
-			! im1
-			if (im1 .ge. 1) then
-				   dott = nnx*nx(im1,j,k) + nny*ny(im1,j,k) + nnz*nz(im1,j,k)
-				   crossx = nny*nz(im1,j,k) - nnz*ny(im1,j,k)
-				   sfac = 0.5d0*(s(i,j,k)+s(im1,j,k))
-				   eold = eold + (1.0d0-dott*dott)+KK*dott*crossx*sfac
-			endif
-			! jp1
-			if (jp1 .le. nj) then
-				   dott = nnx*nx(i,jp1,k) + nny*ny(i,jp1,k) + nnz*nz(i,jp1,k)
-				   crossy = nnz*nx(i,jp1,k) - nnx*nz(i,jp1,k)
-				   sfac = 0.5d0*(s(i,j,k)+s(i,jp1,k))
-				   eold = eold + (1.0d0-dott*dott)-KK*dott*crossy*sfac
-			endif
-			! jm1
-			if (jm1 .ge. 1) then
-				   dott = nnx*nx(i,jm1,k) + nny*ny(i,jm1,k) + nnz*nz(i,jm1,k)
-				   crossy = nnz*nx(i,jm1,k) - nnx*nz(i,jm1,k)
-				   sfac = 0.5d0*(s(i,j,k) + s(i,jm1,k))
-				   eold = eold + (1.0d0-dott*dott)+KK*dott*crossy*sfac
-			endif
-			!kp1	
-			if (kp1.le.nk) then
-				   dott = nnx*nx(i,j,kp1) + nny*ny(i,j,kp1) + nnz*nz(i,j,kp1)
-				   crossz = nnx*ny(i,j,kp1) - nny*nx(i,j,kp1)
-				   sfac = 0.5d0*(s(i,j,k)+s(i,j,kp1))
-				   eold = eold + (1.0d0-dott*dott)-KK*dott*crossz*sfac
-			endif
-			!km1
-			if (km1.ge.1) then
-				   dott = nnx*nx(i,j,km1) + nny*ny(i,j,km1) + nnz*nz(i,j,km1)
-				   crossz = nnx*ny(i,j,km1) - nny*nx(i,j,km1)
-				   sfac = 0.5d0*(s(i,j,k)+s(i,j,km1))
-				   eold = eold + (1.0d0-dott*dott)+KK*dott*crossz*sfac
-			endif
+			eold = energy(nx,ny,nz,nnx,nny,nnz,s(i,j,k),s,KK,i,j,k,ip1,im1,jp1,jm1,kp1,km1,ni,nj,nk)
 			! rotate the director at site i,j,k to get trial director (stored in nnx,nny,nnz)
 			if (abs(nnz).gt.0.999d0) then
 			   phi = rand1(itry,1)*twopi
-			   xxnew = nnx+d*dcos(phi)
-			   yynew = nny+d*dsin(phi)
+			   xxnew = nnx+d*cos(phi)
+			   yynew = nny+d*sin(phi)
 			   zznew = nnz
-			   rsq = dsqrt(xxnew*xxnew+yynew*yynew+zznew*zznew)
+			   rsq = sqrt(xxnew*xxnew+yynew*yynew+zznew*zznew)
 			   nnx = xxnew/rsq
 			   nny = yynew/rsq
 			   nnz = zznew/rsq
@@ -196,72 +156,30 @@ module chll_mod
 			   ux = -nny
 			   uy = nnx
 			   uz = 0.0d0
-			   rsq = dsqrt(ux*ux+uy*uy)
+			   rsq = sqrt(ux*ux+uy*uy)
 			   ux = ux/rsq
 			   uy = uy/rsq
 			   uz = uz/rsq
 			   vx = -nnz*nnx
 			   vy = -nnz*nny
 			   vz = nnx*nnx+nny*nny
-			   rsq = dsqrt(vx*vx+vy*vy+vz*vz)
+			   rsq = sqrt(vx*vx+vy*vy+vz*vz)
 			   vx = vx/rsq
 			   vy = vy/rsq
 			   vz = vz/rsq
 			   phi = rand1(itry,2)*twopi
-			   dcosphi = d*dcos(phi)
-			   dsinphi = d*dsin(phi)
+			   dcosphi = d*cos(phi)
+			   dsinphi = d*sin(phi)
 			   nnx = nnx+dcosphi*ux + dsinphi*vx
 			   nny = nny+dcosphi*uy + dsinphi*vy
 			   nnz = nnz+dcosphi*uz + dsinphi*vz
-			   rsq = dsqrt(nnx*nnx+nny*nny+nnz*nnz)
+			   rsq = sqrt(nnx*nnx+nny*nny+nnz*nnz)
 			   nnx = nnx/rsq
 			   nny = nny/rsq
 			   nnz = nnz/rsq
 			endif
 			! calculate enew w/ trial spin
-			!enew = energy(nx,ny,nz,nnx,nny,nnz,s(i,j,k),s,KK,i,j,k,ip1,im1,jp1,jm1,kp1,km1,ni,nj,nk)
-			enew = 0.0d0
-			if (ip1 .le. ni) then
-				dott = nnx*nx(ip1,j,k) + nny*ny(ip1,j,k) + nnz*nz(ip1,j,k)
-				crossx = nny*nz(ip1,j,k) - nnz*ny(ip1,j,k)
-				sfac = 0.5d0*(s(i,j,k)+s(ip1,j,k))
-				enew = enew + (1.0d0-dott*dott)-KK*dott*crossx*sfac
-			endif
-			! im1
-			if (im1 .ge. 1) then
-				   dott = nnx*nx(im1,j,k) + nny*ny(im1,j,k) + nnz*nz(im1,j,k)
-				   crossx = nny*nz(im1,j,k) - nnz*ny(im1,j,k)
-				   sfac = 0.5d0*(s(i,j,k)+s(im1,j,k))
-				   enew = enew + (1.0d0-dott*dott)+KK*dott*crossx*sfac
-			endif
-			! jp1
-			if (jp1 .le. nj) then
-				   dott = nnx*nx(i,jp1,k) + nny*ny(i,jp1,k) + nnz*nz(i,jp1,k)
-				   crossy = nnz*nx(i,jp1,k) - nnx*nz(i,jp1,k)
-				   sfac = 0.5d0*(s(i,j,k)+s(i,jp1,k))
-				   enew = enew + (1.0d0-dott*dott)-KK*dott*crossy*sfac
-			endif
-			! jm1
-			if (jm1 .ge. 1) then
-				   dott = nnx*nx(i,jm1,k) + nny*ny(i,jm1,k) + nnz*nz(i,jm1,k)
-				   crossy = nnz*nx(i,jm1,k) - nnx*nz(i,jm1,k)
-				   sfac = 0.5d0*(s(i,j,k) + s(i,jm1,k))
-				   enew = enew + (1.0d0-dott*dott)+KK*dott*crossy*sfac
-			endif
-			!kp1	
-			if (kp1.le.nk) then
-				   dott = nnx*nx(i,j,kp1) + nny*ny(i,j,kp1) + nnz*nz(i,j,kp1)
-				   crossz = nnx*ny(i,j,kp1) - nny*nx(i,j,kp1)
-				   sfac = 0.5d0*(s(i,j,k)+s(i,j,kp1))
-				   enew = enew + (1.0d0-dott*dott)-KK*dott*crossz*sfac
-			endif
-			!km1
-			if (km1.ge.1) then
-				   dott = nnx*nx(i,j,km1) + nny*ny(i,j,km1) + nnz*nz(i,j,km1)
-				   crossz = nnx*ny(i,j,km1) - nny*nx(i,j,km1)
-				   sfac = 0.5d0*(s(i,j,k)+s(i,j,km1))
-				   enew = enew + (1.0d0-dott*dott)+KK*dott*crossz*sfac
-			endif
+			enew = energy(nx,ny,nz,nnx,nny,nnz,s(i,j,k),s,KK,i,j,k,ip1,im1,jp1,jm1,kp1,km1,ni,nj,nk)
 		!print*,i,j,k,eold,enew,enew.lt.eold
 		! metropolis algorithm
 		if (enew.lt.eold) then
@@ -270,7 +188,7 @@ module chll_mod
 		   nz(i,j,k) = nnz
 		   naccept = naccept + 1
 		 else
-			if (rand2(itry,1).le.dexp(-(enew-eold)/kbt)) then
+			if (rand2(itry,1).le.exp(-(enew-eold)/kbt)) then
 			  nx(i,j,k) = nnx
 			  ny(i,j,k) = nny
 			  nz(i,j,k) = nnz
@@ -290,100 +208,16 @@ module chll_mod
 			nnx = nx(i,j,k)
 			nny = ny(i,j,k)
 			nnz = nz(i,j,k)
-			!eold = energy(nx,ny,nz,nnx,nny,nnz,s(i,j,k),s,KK,i,j,k,ip1,im1,jp1,jm1,kp1,km1,ni,nj,nk)
-			eold = 0.0d0
-			if (ip1 .le. ni) then
-				dott = nnx*nx(ip1,j,k) + nny*ny(ip1,j,k) + nnz*nz(ip1,j,k)
-				crossx = nny*nz(ip1,j,k) - nnz*ny(ip1,j,k)
-				sfac = 0.5d0*(s(i,j,k)+s(ip1,j,k))
-				eold = eold + (1.0d0-dott*dott)-KK*dott*crossx*sfac
-			endif
-			! im1
-			if (im1 .ge. 1) then
-				   dott = nnx*nx(im1,j,k) + nny*ny(im1,j,k) + nnz*nz(im1,j,k)
-				   crossx = nny*nz(im1,j,k) - nnz*ny(im1,j,k)
-				   sfac = 0.5d0*(s(i,j,k)+s(im1,j,k))
-				   eold = eold + (1.0d0-dott*dott)+KK*dott*crossx*sfac
-			endif
-			! jp1
-			if (jp1 .le. nj) then
-				   dott = nnx*nx(i,jp1,k) + nny*ny(i,jp1,k) + nnz*nz(i,jp1,k)
-				   crossy = nnz*nx(i,jp1,k) - nnx*nz(i,jp1,k)
-				   sfac = 0.5d0*(s(i,j,k)+s(i,jp1,k))
-				   eold = eold + (1.0d0-dott*dott)-KK*dott*crossy*sfac
-			endif
-			! jm1
-			if (jm1 .ge. 1) then
-				   dott = nnx*nx(i,jm1,k) + nny*ny(i,jm1,k) + nnz*nz(i,jm1,k)
-				   crossy = nnz*nx(i,jm1,k) - nnx*nz(i,jm1,k)
-				   sfac = 0.5d0*(s(i,j,k) + s(i,jm1,k))
-				   eold = eold + (1.0d0-dott*dott)+KK*dott*crossy*sfac
-			endif
-			!kp1	
-			if (kp1.le.nk) then
-				   dott = nnx*nx(i,j,kp1) + nny*ny(i,j,kp1) + nnz*nz(i,j,kp1)
-				   crossz = nnx*ny(i,j,kp1) - nny*nx(i,j,kp1)
-				   sfac = 0.5d0*(s(i,j,k)+s(i,j,kp1))
-				   eold = eold + (1.0d0-dott*dott)-KK*dott*crossz*sfac
-			endif
-			!km1
-			if (km1.ge.1) then
-				   dott = nnx*nx(i,j,km1) + nny*ny(i,j,km1) + nnz*nz(i,j,km1)
-				   crossz = nnx*ny(i,j,km1) - nny*nx(i,j,km1)
-				   sfac = 0.5d0*(s(i,j,k)+s(i,j,km1))
-				   eold = eold + (1.0d0-dott*dott)+KK*dott*crossz*sfac
-			endif
+			eold = energy(nx,ny,nz,nnx,nny,nnz,s(i,j,k),s,KK,i,j,k,ip1,im1,jp1,jm1,kp1,km1,ni,nj,nk)
 			! switch chirality and calculate enew
 			snew = -s(i,j,k)
-			!enew = energy(nx,ny,nz,nnx,nny,nnz,snew,s,KK,i,j,k,ip1,im1,jp1,jm1,kp1,km1,ni,nj,nk)
-			enew = 0.0d0
-			if (ip1 .le. ni) then
-				dott = nnx*nx(ip1,j,k) + nny*ny(ip1,j,k) + nnz*nz(ip1,j,k)
-				crossx = nny*nz(ip1,j,k) - nnz*ny(ip1,j,k)
-				sfac = 0.5d0*(snew+s(ip1,j,k))
-				enew = enew + (1.0d0-dott*dott)-KK*dott*crossx*sfac
-			endif
-			! im1
-			if (im1 .ge. 1) then
-				   dott = nnx*nx(im1,j,k) + nny*ny(im1,j,k) + nnz*nz(im1,j,k)
-				   crossx = nny*nz(im1,j,k) - nnz*ny(im1,j,k)
-				   sfac = 0.5d0*(snew+s(im1,j,k))
-				   enew = enew + (1.0d0-dott*dott)+KK*dott*crossx*sfac
-			endif
-			! jp1
-			if (jp1 .le. nj) then
-				   dott = nnx*nx(i,jp1,k) + nny*ny(i,jp1,k) + nnz*nz(i,jp1,k)
-				   crossy = nnz*nx(i,jp1,k) - nnx*nz(i,jp1,k)
-				   sfac = 0.5d0*(snew+s(i,jp1,k))
-				   enew = enew + (1.0d0-dott*dott)-KK*dott*crossy*sfac
-			endif
-			! jm1
-			if (jm1 .ge. 1) then
-				   dott = nnx*nx(i,jm1,k) + nny*ny(i,jm1,k) + nnz*nz(i,jm1,k)
-				   crossy = nnz*nx(i,jm1,k) - nnx*nz(i,jm1,k)
-				   sfac = 0.5d0*(snew + s(i,jm1,k))
-				   enew = enew + (1.0d0-dott*dott)+KK*dott*crossy*sfac
-			endif
-			!kp1	
-			if (kp1.le.nk) then
-				   dott = nnx*nx(i,j,kp1) + nny*ny(i,j,kp1) + nnz*nz(i,j,kp1)
-				   crossz = nnx*ny(i,j,kp1) - nny*nx(i,j,kp1)
-				   sfac = 0.5d0*(snew+s(i,j,kp1))
-				   enew = enew + (1.0d0-dott*dott)-KK*dott*crossz*sfac
-			endif
-			!km1
-			if (km1.ge.1) then
-				   dott = nnx*nx(i,j,km1) + nny*ny(i,j,km1) + nnz*nz(i,j,km1)
-				   crossz = nnx*ny(i,j,km1) - nny*nx(i,j,km1)
-				   sfac = 0.5d0*(snew+s(i,j,km1))
-				   enew = enew + (1.0d0-dott*dott)+KK*dott*crossz*sfac
-			endif
+			enew = energy(nx,ny,nz,nnx,nny,nnz,snew,s,KK,i,j,k,ip1,im1,jp1,jm1,kp1,km1,ni,nj,nk)
 			! metropolis
 			if (enew.lt.eold) then
 			   s(i,j,k) = snew
 			   nflip = nflip + 1
 			else
-			   if (rand2(itry,2).le.dexp(-(enew-eold)/kbt)) then
+			   if (rand2(itry,2).le.exp(-(enew-eold)/kbt)) then
 				  s(i,j,k) = snew
 				  nflip = nflip + 1
 			   endif
@@ -392,53 +226,53 @@ module chll_mod
 	end subroutine evolve
 
 	pure real function energy(nx,ny,nz,nnx,nny,nnz,snew,sold,KK,i,j,k,ip1,im1,jp1,jm1,kp1,km1,ni,nj,nk)
-    implicit none
-    integer(kind=int64),intent(in) :: i,j,k,ip1,im1,jp1,jm1,kp1,km1,snew,sold(:,:,:),ni,nj,nk
-    real(kind=real64),intent(in) :: nx(:,:,:),ny(:,:,:),nz(:,:,:),nnx,nny,nnz,KK
-    real(kind=real64) :: dott,crossx,crossy,crossz,sfac,etmp
-    etmp = 0.0d0
-    ! ip1
-    if (ip1 .le. ni) then
-       dott = nnx*nx(ip1,j,k) + nny*ny(ip1,j,k) + nnz*nz(ip1,j,k)
-       crossx = nny*nz(ip1,j,k) - nnz*ny(ip1,j,k)
-       sfac = 0.5d0*(snew+sold(ip1,j,k))
-       etmp = etmp + (1.0d0-dott*dott)-KK*dott*crossx*sfac
-    endif
-    ! im1
-    if (im1 .ge. 1) then
-       dott = nnx*nx(im1,j,k) + nny*ny(im1,j,k) + nnz*nz(im1,j,k)
-       crossx = nny*nz(im1,j,k) - nnz*ny(im1,j,k)
-       sfac = 0.5d0*(snew+sold(im1,j,k))
-       etmp = etmp + (1.0d0-dott*dott)+KK*dott*crossx*sfac
-    endif
-    ! jp1
-    if (jp1 .le. nj) then
-       dott = nnx*nx(i,jp1,k) + nny*ny(i,jp1,k) + nnz*nz(i,jp1,k)
-       crossy = nnz*nx(i,jp1,k) - nnx*nz(i,jp1,k)
-       sfac = 0.5d0*(snew+sold(i,jp1,k))
-       etmp = etmp + (1.0d0-dott*dott)-KK*dott*crossy*sfac
-    endif
-    ! jm1
-    if (jm1 .ge. 1) then
-       dott = nnx*nx(i,jm1,k) + nny*ny(i,jm1,k) + nnz*nz(i,jm1,k)
-       crossy = nnz*nx(i,jm1,k) - nnx*nz(i,jm1,k)
-       sfac = 0.5d0*(snew+sold(i,jm1,k))
-       etmp = etmp + (1.0d0-dott*dott)+KK*dott*crossy*sfac
-    endif
-    
-    if (kp1.le.nk) then
-       dott = nnx*nx(i,j,kp1) + nny*ny(i,j,kp1) + nnz*nz(i,j,kp1)
-       crossz = nnx*ny(i,j,kp1) - nny*nx(i,j,kp1)
-       sfac = 0.5d0*(snew+sold(i,j,kp1))
-       etmp = etmp + (1.0d0-dott*dott)-KK*dott*crossz*sfac
-    endif
-    if (km1.ge.1) then
-       dott = nnx*nx(i,j,km1) + nny*ny(i,j,km1) + nnz*nz(i,j,km1)
-       crossz = nnx*ny(i,j,km1) - nny*nx(i,j,km1)
-       sfac = 0.5d0*(snew+sold(i,j,km1))
-       etmp = etmp + (1.0d0-dott*dott)+KK*dott*crossz*sfac
-    endif
-    energy = etmp
+	!$acc routine seq
+		implicit none
+		integer(kind=int64),intent(in) :: i,j,k,ip1,im1,jp1,jm1,kp1,km1,snew,sold(:,:,:),ni,nj,nk
+		real(kind=real64),intent(in) :: nx(:,:,:),ny(:,:,:),nz(:,:,:),nnx,nny,nnz,KK
+		real(kind=real64) :: dott,crossx,crossy,crossz,sfac
+		energy = 0.0d0
+		! ip1
+		if (ip1 .le. ni) then
+		   dott = nnx*nx(ip1,j,k) + nny*ny(ip1,j,k) + nnz*nz(ip1,j,k)
+		   crossx = nny*nz(ip1,j,k) - nnz*ny(ip1,j,k)
+		   sfac = 0.5d0*(snew+sold(ip1,j,k))
+		   energy = energy + (1.0d0-dott*dott)-KK*dott*crossx*sfac
+		endif
+		! im1
+		if (im1 .ge. 1) then
+		   dott = nnx*nx(im1,j,k) + nny*ny(im1,j,k) + nnz*nz(im1,j,k)
+		   crossx = nny*nz(im1,j,k) - nnz*ny(im1,j,k)
+		   sfac = 0.5d0*(snew+sold(im1,j,k))
+		   energy = energy + (1.0d0-dott*dott)+KK*dott*crossx*sfac
+		endif
+		! jp1
+		if (jp1 .le. nj) then
+		   dott = nnx*nx(i,jp1,k) + nny*ny(i,jp1,k) + nnz*nz(i,jp1,k)
+		   crossy = nnz*nx(i,jp1,k) - nnx*nz(i,jp1,k)
+		   sfac = 0.5d0*(snew+sold(i,jp1,k))
+		   energy = energy + (1.0d0-dott*dott)-KK*dott*crossy*sfac
+		endif
+		! jm1
+		if (jm1 .ge. 1) then
+		   dott = nnx*nx(i,jm1,k) + nny*ny(i,jm1,k) + nnz*nz(i,jm1,k)
+		   crossy = nnz*nx(i,jm1,k) - nnx*nz(i,jm1,k)
+		   sfac = 0.5d0*(snew+sold(i,jm1,k))
+		   energy = energy + (1.0d0-dott*dott)+KK*dott*crossy*sfac
+		endif
+		
+		if (kp1.le.nk) then
+		   dott = nnx*nx(i,j,kp1) + nny*ny(i,j,kp1) + nnz*nz(i,j,kp1)
+		   crossz = nnx*ny(i,j,kp1) - nny*nx(i,j,kp1)
+		   sfac = 0.5d0*(snew+sold(i,j,kp1))
+		   energy = energy + (1.0d0-dott*dott)-KK*dott*crossz*sfac
+		endif
+		if (km1.ge.1) then
+		   dott = nnx*nx(i,j,km1) + nny*ny(i,j,km1) + nnz*nz(i,j,km1)
+		   crossz = nnx*ny(i,j,km1) - nny*nx(i,j,km1)
+		   sfac = 0.5d0*(snew+sold(i,j,km1))
+		   energy = energy + (1.0d0-dott*dott)+KK*dott*crossz*sfac
+		endif
   end function energy
 
   real function etot(nx,ny,nz,s,KK,ni,nj,nk)
@@ -452,7 +286,11 @@ module chll_mod
     !allocate(e(ni,nj,nk))
     !e(:,:,:) = 0.0d0
     e = 0.0d0
-    do concurrent(k=1:nk,j=1:nj,i=1:ni) local(ip1,jp1,kp1,ddot,crossx,crossy,crossz,sfac) reduce(+:e)
+    !do concurrent(k=1:nk,j=1:nj,i=1:ni) local(ip1,jp1,kp1,ddot,crossx,crossy,crossz,sfac) reduce(+:e)
+    !$acc parallel loop collapse(3) private(ip1,jp1,kp1,ddot,crossx,crossy,crossz,sfac) present(nx,ny,nz,s) reduction(+:e)
+    do k = 1,nk
+    do j = 1,nj
+    do i = 1,ni
        ip1 = mod(i,ni) + 1
        jp1 = mod(j,nj) + 1
        kp1 = k+1
@@ -472,6 +310,8 @@ module chll_mod
        sfac = 0.5d0*(s(i,j,k)+s(i,j,kp1))
        e = e + (1.0d0 - ddot*ddot) - KK*ddot*crossz*sfac
        endif
+    enddo
+    enddo
     enddo
     etot = e/float(ni*nj*nk)
     !etot = sum(e)/float(ni*nj*nk)
