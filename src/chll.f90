@@ -1,26 +1,25 @@
 program chll
-  use types
+  use iso_c_binding
   use chll_mod
   !use omp_lib
    implicit none
   
-  integer(kind=int64) :: ni,nj,nk,n3
-  real(kind=real64) :: kbt = 0.05d0
-  integer(kind=int64) :: nsteps = 1000
-  real(kind=real64),allocatable :: nx(:,:,:),ny(:,:,:),nz(:,:,:)
-  integer(kind=int64),allocatable :: s(:,:,:) ! chirality
-  integer(kind=int64),allocatable :: sl1(:),sl2(:) ! sublattices corresponding to odds(1) and evens(2)
-  integer(kind=int64),allocatable :: dope(:,:,:)!naccept(:,:,:),nflip(:,:,:)
-  real(kind=real64),allocatable :: rand1(:,:),rand2(:,:)
-  real(kind=real64) :: d = 0.01d0 ! size of spin rotation perturbation
-  real(kind=real64) :: KK = 1.d0 !
-  real(kind=real64) :: rho=0.0d0 ! density of chiral dopant
-  real(kind=real64),allocatable :: rhoz(:) !measuring density of chiral in each z-slice
-  real(kind=real64) :: cosphi,sinphi,costh,sinth,phi,pi,twopi,rnd
-  real(kind=real64) :: faccept,e_excess,paccept,total_energy
-  integer(kind=int64) :: nsub,nsub1,nsub2,index
-  integer(kind=int64) :: i,j,k,istep,itry,naccept,nflip
-  real(kind=real64) :: scale,x1,x2,z1,z2 ! for output
+  integer(c_int) :: ni,nj,nk,n3
+  real(c_double) :: kbt = 0.05d0
+  integer(c_int) :: nsteps = 1000
+  real(c_double),allocatable :: nx(:,:,:),ny(:,:,:),nz(:,:,:)
+  integer(c_int),allocatable :: s(:,:,:) ! chirality
+  integer(c_int),allocatable :: sl1(:),sl2(:) ! sublattices corresponding to odds(1) and evens(2)
+  integer(c_int),allocatable :: dope(:,:,:)!naccept(:,:,:),nflip(:,:,:)
+  real(c_double) :: d = 0.01d0 ! size of spin rotation perturbation
+  real(c_double) :: KK = 1.d0 !
+  real(c_double) :: rho=0.0d0 ! density of chiral dopant
+  real(c_double),allocatable :: rhoz(:) !measuring density of chiral in each z-slice
+  real(c_double) :: cosphi,sinphi,costh,sinth,phi,pi,twopi,rnd
+  real(c_double) :: faccept,e_excess,paccept,total_energy
+  integer(c_int) :: nsub,nsub1,nsub2,index
+  integer(c_int) :: i,j,k,istep,itry,naccept,nflip
+  real(c_double) :: scale,x1,x2,z1,z2 ! for output
 
   ni = 64
   nj = 64
@@ -39,46 +38,12 @@ program chll
   !allocate(nflip(ni,nj,nk))
   allocate(sl1(nsub))
   allocate(sl2(nsub))
-  allocate(rand1(nsub,2))
-  allocate(rand2(nsub,2))
-  call init(nx,ny,nz,s,dope,sl1,sl2,ni,nj,nk)
+  call init(nx,ny,nz,s,dope,sl1,sl2,ni,nj,nk,nsub)
   print*,"init done!"
-  call run(nsteps,nx,ny,nz,s,dope,sl1,sl2,rand1,rand2,KK,d,kbt,ni,nj,nk)
-  call output(nx,ny,nz,s,ni,nj,nk)
+  call run(nsteps,nx,ny,nz,s,dope,sl1,sl2,KK,d,kbt,ni,nj,nk,nsub)
+  !call output(nx,ny,nz,s,ni,nj,nk)
   !deallocate(nx,ny,nz,nflip,naccept,s,dope)
-  deallocate(nx,ny,nz,s,dope)
-  
-contains
-	subroutine output(nx,ny,nz,s,ni,nj,nk)
-		implicit none
-		real(kind=real64), intent(in out) :: nx(:,:,:),ny(:,:,:),nz(:,:,:)
-		integer(kind=int64), intent(in out) :: s(:,:,:)
-		integer(kind=int64), intent(in) :: ni,nj,nk
-		integer(kind=int64) :: i,j,k
-		real(kind=real64) :: x1,x2,z1,z2,scale
-		open(unit=11,file='LLMC-configa.dat',status='unknown')
-		open(unit=12,file='LLMC-configb.dat',status='unknown')
-		scale = 0.4
-		do i = 1,ni
-		 j = nj/2
-		 do k = 1,nk
-			x1 = i-scale*nx(i,j,k)
-			x2 = i+scale*nx(i,j,k)
-			z1 = k-scale*nz(i,j,k)
-			z2 = k+scale*nz(i,j,k)
-			if (s(i,j,k).eq.1) then
-			   write(11,*) x1,z1
-			   write(11,*) x2,z2
-			   write(11,*)
-			else
-			   write(12,*) x1,z1
-			   write(12,*) x2,z2
-			   write(12,*)
-			endif
-		 enddo
-		enddo
-		close(unit=11)
-		close(unit=12)
-	end subroutine output
+  !deallocate(nx,ny,nz,s,dope)
+
      
 end program chll

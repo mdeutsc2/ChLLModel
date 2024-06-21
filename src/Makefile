@@ -3,18 +3,18 @@
 # Compiler and flags
 
 #NVFORTRAN
-#FC = nvfortran
+FC = nvfortran
 #FFLAGS = -acc=gpu -fast -Minfo=all -Mconcur -Mnobounds -acclibs -Bstatic-nvidia
-#FFLAGS = -acc=multicore -fast -Minfo=all -Mconcur=cncall -Minline=reshape -time=real -Mnobounds -Bstatic-nvidia -acclibs
+FFLAGS = -acc=multicore -fast -Minfo=all -Mconcur=cncall -Minline=reshape -time=real -Mnobounds -acclibs
 #F2PYFLAGS = -acc=gpu -fast -Minfo=all -Mconcur -Mnobounds -acclibs -Bstatic-nvidia
-#F2PYFLAGS = -acc=multicore -fast -Minfo=all -Mconcur=cncall -Minline=reshape -time=real -Mnobounds -Bstatic-nvidia -acclibs
+F2PYFLAGS = -acc=multicore -fast -Minfo=all -Mconcur=cncall -Minline=reshape -time=real -Mnobounds -acclibs
 
 #GFORTRAN
-FC = gfortran
+#FC = gfortran
 #FFLAGS = -fopenacc -foffload=nvptx-none -foffload=-lgfortran -Ofast -march=native -ffast-math -ffree-line-length-none
-FFLAGS = -fopenacc -fopenmp -foffload=disable -foffload="-lm -O3 -v" -Ofast -march=native -ffast-math -ffree-line-length-none -fno-stack-protector
+#FFLAGS = -fopenacc -foffload=nvptx-none -O2 -march=native -ffree-line-length-none
 #F2PYFLAGS = -acc=gpu -fast -Minfo=all -Mconcur -Mnobounds -acclibs -Bstatic-nvidia
-F2PYFLAGS = -acc=multicore -fast -Minfo=all -Mconcur=cncall -Minline=reshape -time=real -Mnobounds -Bstatic-nvidia -acclibs
+#F2PYFLAGS = -acc=multicore -fast -Minfo=all -Mconcur=cncall -Minline=reshape -time=real -Mnobounds -Bstatic-nvidia -acclibs
 
 # Executable name
 EXEC = chll
@@ -44,7 +44,8 @@ f2py: chll_mod.f90
 	#CC="nvc" FC="$(FC)" FFLAGS="$(F2PYFLAGS)" python3 -m numpy.f2py --verbose -c chll_mod.f90 -m chll_mod --backend meson --lower
 	FC="$(FC)" FFLAGS="$(F2PYFLAGS)" python3 -m numpy.f2py --verbose -c chll_mod.f90 -m chll_mod --backend meson --lower
 
-
+shared: chll_mod.f90
+	$(FC) $(FFLAGS) -shared chll_mod.f90 -o libchll_mod.so
 clean:
 	rm -f $(EXEC) $(OBJS) *.mod *.so
 

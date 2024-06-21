@@ -1,23 +1,31 @@
-module types
-	implicit none
-	save
-
-	integer,parameter :: int32 = selected_int_kind(8)
-	integer,parameter :: int64 = selected_int_kind(15)
-	integer,parameter :: real64 = selected_real_kind(15)
-end module types
-
 module chll_mod
-	use types
-	
+	use iso_c_binding
+	private
+	public :: init
+	public :: run
+	public :: step
 	contains
-	subroutine init(nx,ny,nz,s,dope,sl1,sl2,ni,nj,nk)
+
+	subroutine test(ni,nj,nx) bind(c, name="test")
+		implicit none
+		integer(c_int),intent(in) :: ni,nj
+		real(c_double), intent(in), dimension(ni) :: nx
+		real(c_double) :: ny(3)
+		print*,"ftn test",ni,nj
+		print*,nx
+		print*,ny
+		print*,size(nx)
+		print*,shape(nx)
+	end subroutine test
+	
+	subroutine init(nx,ny,nz,s,dope,sl1,sl2,ni,nj,nk,nsub) bind(c, name="init")
 	  implicit none
-	  real(kind=real64), intent(in out) :: nx(:,:,:),ny(:,:,:),nz(:,:,:)
-	  integer(kind=int64), intent(in out) :: s(:,:,:),dope(:,:,:),sl1(:),sl2(:)
-	  integer(kind=int64), intent(in) :: ni,nj,nk
-	  real(kind=real64) :: rnd,costh,sinth,phi,cosphi,sinphi,pi,twopi
-	  integer(kind=int64) :: i,j,k,nsub1,nsub2,idx
+	  integer(c_int), intent(in) :: ni,nj,nk,nsub
+	  real(c_double), intent(in out),dimension(ni,nj,nk) :: nx,ny,nz
+	  integer(c_int), intent(in out),dimension(ni,nj,nk) :: s,dope
+	  integer(c_int), intent(in out), dimension(nsub) :: sl1,sl2
+	  real(c_double) :: rnd,costh,sinth,phi,cosphi,sinphi,pi,twopi
+	  integer(c_int) :: i,j,k,nsub1,nsub2,idx
 	  pi = 4.0d0*atan(1.0d0)
 	  twopi = 2.0d0*pi
 	  ! setting up initial random state
@@ -65,16 +73,23 @@ module chll_mod
 	end subroutine init
 
 
-	subroutine run(nsteps,nx,ny,nz,s,dope,sl1,sl2,rand1,rand2,KK,d,kbt,ni,nj,nk)
+	subroutine run(nsteps,nx,ny,nz,s,dope,sl1,sl2,KK,d,kbt,ni,nj,nk,nsub) bind(c, name="run")
 		implicit none
-		integer(kind=int64), intent(in) :: nsteps,ni,nj,nk
-		real(kind=real64), intent(in out) :: nx(:,:,:),ny(:,:,:),nz(:,:,:),rand1(:,:),rand2(:,:)
-		real(kind=real64), intent(in out) :: KK,d,kbt
-		integer(kind=int64), intent(in out) :: s(:,:,:),dope(:,:,:),sl1(:),sl2(:)
-		integer(kind=int64) :: naccept,nflip,istep,nsub,n3
-		real(kind=real64) :: paccept,faccept,total_energy,e_excess
+		integer(c_int), intent(in) :: nsteps,ni,nj,nk
+		real(c_double), intent(in out),dimension(ni,nj,nk) :: nx,ny,nz
+		real(c_double), intent(in out) :: KK,d,kbt
+		integer(c_int), intent(in out),dimension(ni,nj,nk) :: s,dope
+		integer(c_int), intent(in out), dimension(nsub) :: sl1,sl2
+		integer(c_int) :: naccept,nflip,istep,nsub,n3
+		real(c_double) :: paccept,faccept,total_energy,e_excess
+		real(c_double),allocatable :: rand1(:,:),rand2(:,:)
+
 		n3 = ni*nj*nk
 		nsub = n3/2
+		allocate(rand1(nsub,2))
+		allocate(rand2(nsub,2))
+		! Printing header
+		 write(*,'(A, 5(6X, A))') "Steps", "Energy", "E. excess", "Paccept", "Faccept", "D"
 		!$acc enter data copyin(nx,ny,nz,s,sl1,sl2,rand1,rand2)
 		do istep = 1,nsteps
 		 naccept = 0!(:,:,:) = 0
@@ -101,24 +116,63 @@ module chll_mod
 			! calculate total energy
 			total_energy = etot(nx,ny,nz,s,KK,ni,nj,nk)
 			e_excess = sum(float(s))/float(ni*nj*nk)
-			print*,istep,total_energy,e_excess,paccept,faccept,d
+			write(*,'(I5, 5(1X, F12.6))') istep, total_energy, e_excess, paccept, faccept, d
+			!print*,istep,total_energy,e_excess,paccept,faccept,d
 			!print*,istep,total_energy,e_excess,sum(naccept),sum(nflip)
 		 ! calculate enantiomeric excess
 		 endif
 		enddo
 		!$acc exit data copyout(nx,ny,nz,s,sl1,sl2,rand1,rand2)
+		!call output(nx,ny,nz,s,ni,nj,nk)
+		deallocate(rand1,rand2)
 	end subroutine run
+
+	subroutine step(istep,nx,ny,nz,s,dope,rand1,rand2,sl1,sl2,KK,d,kbt,ni,nj,nk,nsub) bind(c, name="step")
+		implicit none
+		integer(c_int), intent(in) :: istep,ni,nj,nk,nsub
+		real(c_double), intent(in out),dimension(ni,nj,nk) :: nx,ny,nz
+		real(c_double), intent(in out) :: KK,d,kbt
+		real(c_double), intent(in out),dimension(nsub,2) :: rand1,rand2
+		integer(c_int), intent(in out),dimension(ni,nj,nk) :: s,dope
+		integer(c_int), intent(in out), dimension(nsub) :: sl1,sl2
+		integer(c_int) :: naccept,nflip,n3
+		real(c_double) :: paccept,faccept,total_energy,e_excess
+		naccept = 0
+		nflip = 0
+		n3 = ni*nj*nk
+		call random_number(rand1)
+		call random_number(rand2)
+		!$acc update device(rand1,rand2)
+		call evolve(sl1,nx,ny,nz,s,rand1,rand2,KK,d,kbt,nsub,naccept,nflip,ni,nj,nk)
+		!$acc update device(rand1,rand2)
+		call random_number(rand1)
+		call random_number(rand2)
+		call evolve(sl2,nx,ny,nz,s,rand1,rand2,KK,d,kbt,nsub,naccept,nflip,ni,nj,nk)
+		paccept = float(naccept)/float(n3)
+		if (paccept.lt.0.4d0) then
+			d = d*0.995
+		elseif (paccept.gt.0.6d0) then
+			d = d/0.995
+		endif
+		if (mod(istep,100).eq.0) then
+			faccept = float(nflip)/float(n3)
+			! calculate total energy
+			total_energy = etot(nx,ny,nz,s,KK,ni,nj,nk)
+			e_excess = sum(float(s))/float(ni*nj*nk)
+			write(*,'(I5, 5(1X, F12.6))') istep, total_energy, e_excess, paccept, faccept, d
+		endif
+	end subroutine step
 
 	subroutine evolve(sl,nx,ny,nz,s,rand1,rand2,KK,d,kbt,nsub,naccept,nflip,ni,nj,nk)
 		implicit none
-		integer(kind=int64), intent(in) :: sl(:),nsub
-		real(kind=real64),intent(in out) :: nx(:,:,:),ny(:,:,:),nz(:,:,:)
-		integer(kind=int64), intent(in out) :: s(:,:,:),naccept,nflip
-		real(kind=real64),intent(in) :: KK,d,rand1(:,:),rand2(:,:),kbt
-		integer(kind=int64),intent(in) :: ni,nj,nk
-		real(kind=real64) :: dcosphi,dsinphi,enew,eold,nnx,nny,nnz,ux,uy,uz,vx,vy,vz,xxnew,yynew,zznew,rsq,phi
-		integer(kind=int64) :: itry,i,j,k,ip1,im1,jp1,jm1,kp1,km1,snew,index
-		real(kind=real64) :: dott,crossx,crossy,crossz,sfac,pi,twopi
+		integer(c_int), intent(in) :: sl(:),nsub
+		real(c_double),intent(in out) :: nx(:,:,:),ny(:,:,:),nz(:,:,:)
+		integer(c_int), intent(in out) :: s(:,:,:),naccept,nflip
+		real(c_double),intent(in) :: KK,d,rand1(:,:),rand2(:,:),kbt
+		integer(c_int),intent(in) :: ni,nj,nk
+		real(c_double) :: dcosphi,dsinphi,enew,eold,nnx,nny,nnz,ux,uy,uz,vx,vy,vz,xxnew,yynew,zznew,rsq,phi
+		integer(c_int) :: itry,i,j,k,ip1,im1,jp1,jm1,kp1,km1,snew,index
+		real(c_double) :: dott,crossx,crossy,crossz,sfac,pi,twopi
 	    pi = 4.0d0*datan(1.0d0)
 	    twopi = 2.0d0*pi
 		!do itry = 1,nsub
@@ -228,9 +282,9 @@ module chll_mod
 	pure real function energy(nx,ny,nz,nnx,nny,nnz,snew,sold,KK,i,j,k,ip1,im1,jp1,jm1,kp1,km1,ni,nj,nk)
 	!$acc routine seq
 		implicit none
-		integer(kind=int64),intent(in) :: i,j,k,ip1,im1,jp1,jm1,kp1,km1,snew,sold(:,:,:),ni,nj,nk
-		real(kind=real64),intent(in) :: nx(:,:,:),ny(:,:,:),nz(:,:,:),nnx,nny,nnz,KK
-		real(kind=real64) :: dott,crossx,crossy,crossz,sfac
+		integer(c_int),intent(in) :: i,j,k,ip1,im1,jp1,jm1,kp1,km1,snew,sold(:,:,:),ni,nj,nk
+		real(c_double),intent(in) :: nx(:,:,:),ny(:,:,:),nz(:,:,:),nnx,nny,nnz,KK
+		real(c_double) :: dott,crossx,crossy,crossz,sfac
 		energy = 0.0d0
 		! ip1
 		if (ip1 .le. ni) then
@@ -277,11 +331,11 @@ module chll_mod
 
   real function etot(nx,ny,nz,s,KK,ni,nj,nk)
     implicit none
-    real(kind=real64),intent(in) :: nx(:,:,:),ny(:,:,:),nz(:,:,:),KK
-    integer(kind=int64),intent(in) :: s(:,:,:),ni,nj,nk
-    real(kind=real64) :: ddot,crossx,crossy,crossz,sfac,e
+    real(c_double),intent(in) :: nx(:,:,:),ny(:,:,:),nz(:,:,:),KK
+    integer(c_int),intent(in) :: s(:,:,:),ni,nj,nk
+    real(c_double) :: ddot,crossx,crossy,crossz,sfac,e
     !real(real64),allocatable::e(:,:,:)
-    integer(kind=int64) :: i,j,k,ip1,jp1,kp1
+    integer(c_int) :: i,j,k,ip1,jp1,kp1
    
     !allocate(e(ni,nj,nk))
     !e(:,:,:) = 0.0d0
@@ -317,5 +371,37 @@ module chll_mod
     !etot = sum(e)/float(ni*nj*nk)
     !deallocate(e)    
   end function etot
+
+  	subroutine output(nx,ny,nz,s,ni,nj,nk)
+		implicit none
+		real(c_double), intent(in out) :: nx(:,:,:),ny(:,:,:),nz(:,:,:)
+		integer(c_int), intent(in out) :: s(:,:,:)
+		integer(c_int), intent(in) :: ni,nj,nk
+		integer(c_int) :: i,j,k
+		real(c_double) :: x1,x2,z1,z2,scale
+		open(unit=11,file='LLMC-configa.dat',status='unknown')
+		open(unit=12,file='LLMC-configb.dat',status='unknown')
+		scale = 0.4
+		do i = 1,ni
+		 j = nj/2
+		 do k = 1,nk
+			x1 = i-scale*nx(i,j,k)
+			x2 = i+scale*nx(i,j,k)
+			z1 = k-scale*nz(i,j,k)
+			z2 = k+scale*nz(i,j,k)
+			if (s(i,j,k).eq.1) then
+			   write(11,*) x1,z1
+			   write(11,*) x2,z2
+			   write(11,*)
+			else
+			   write(12,*) x1,z1
+			   write(12,*) x2,z2
+			   write(12,*)
+			endif
+		 enddo
+		enddo
+		close(unit=11)
+		close(unit=12)
+	end subroutine output
 
 end module chll_mod
