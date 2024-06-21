@@ -33,6 +33,6 @@ sim = chll.ChLLSim(name = "test"+str(i),
 
 init_random(sim)
 sim.init()
-sim.run(1000,50,save=True)
+sim.run(10000,50,save=True)
 #sim.output_old()
 	
