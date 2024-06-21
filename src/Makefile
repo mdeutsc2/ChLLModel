@@ -12,7 +12,7 @@
 #GFORTRAN
 FC = gfortran
 #FFLAGS = -fopenacc -foffload=nvptx-none -foffload=-lgfortran -Ofast -march=native -ffast-math -ffree-line-length-none
-FFLAGS = -v -fopenacc -foffload=disable -foffload-options=-lgfortran -Ofast -march=native -ffast-math -ffree-line-length-none -fno-stack-protector
+FFLAGS = -fopenacc -fopenmp -foffload=disable -foffload="-lm -O3 -v" -Ofast -march=native -ffast-math -ffree-line-length-none -fno-stack-protector
 #F2PYFLAGS = -acc=gpu -fast -Minfo=all -Mconcur -Mnobounds -acclibs -Bstatic-nvidia
 F2PYFLAGS = -acc=multicore -fast -Minfo=all -Mconcur=cncall -Minline=reshape -time=real -Mnobounds -Bstatic-nvidia -acclibs
 
