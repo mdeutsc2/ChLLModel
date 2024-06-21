@@ -143,7 +143,7 @@ class ChLLSim:
 		self.msteps = np.zeros((int(nsteps/nout)),dtype=np.int32,order='F')
 		self.m = np.zeros((int(nsteps/nout),5),dtype=np.float64, order='F')
 		print("> RUNNING")
-                st = time.perf_counter()
+		st = time.perf_counter()
 		ftn_run(ct.c_int(1),ct.c_int(nsteps),ct.c_int(nout),
 				self.nx,
 				self.ny,
@@ -157,7 +157,7 @@ class ChLLSim:
 				ct.c_double(self.kbt),
 				ct.c_int(self.ni),ct.c_int(self.nj),ct.c_int(self.nk),ct.c_int(self.nsub),
 				self.msteps,self.m)
-                et = time.perf_counter()
+		et = time.perf_counter()
 		if save:
 			self.save_macros()
 			self.save_config()
