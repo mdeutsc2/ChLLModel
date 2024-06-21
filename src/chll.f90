@@ -40,7 +40,7 @@ program chll
   allocate(sl2(nsub))
   call init(nx,ny,nz,s,dope,sl1,sl2,ni,nj,nk,nsub)
   print*,"init done!"
-  call run(nsteps,nx,ny,nz,s,dope,sl1,sl2,KK,d,kbt,ni,nj,nk,nsub)
+  call run(1,nsteps,nx,ny,nz,s,dope,sl1,sl2,KK,d,kbt,ni,nj,nk,nsub)
   !call output(nx,ny,nz,s,ni,nj,nk)
   !deallocate(nx,ny,nz,nflip,naccept,s,dope)
   !deallocate(nx,ny,nz,s,dope)

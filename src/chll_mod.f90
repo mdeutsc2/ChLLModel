@@ -73,9 +73,9 @@ module chll_mod
 	end subroutine init
 
 
-	subroutine run(nsteps,nx,ny,nz,s,dope,sl1,sl2,KK,d,kbt,ni,nj,nk,nsub) bind(c, name="run")
+	subroutine run(nstart,nstop,nx,ny,nz,s,dope,sl1,sl2,KK,d,kbt,ni,nj,nk,nsub) bind(c, name="run")
 		implicit none
-		integer(c_int), intent(in) :: nsteps,ni,nj,nk
+		integer(c_int), intent(in) :: nstart,nstop,ni,nj,nk
 		real(c_double), intent(in out),dimension(ni,nj,nk) :: nx,ny,nz
 		real(c_double), intent(in out) :: KK,d,kbt
 		integer(c_int), intent(in out),dimension(ni,nj,nk) :: s,dope
@@ -89,9 +89,9 @@ module chll_mod
 		allocate(rand1(nsub,2))
 		allocate(rand2(nsub,2))
 		! Printing header
-		 write(*,'(A, 5(6X, A))') "Steps", "Energy", "E. excess", "Paccept", "Faccept", "D"
+		if (nstart .eq. 1) write(*,'(A, 5(6X, A))') "Steps", "Energy", "E. excess", "Paccept", "Faccept", "D"
 		!$acc enter data copyin(nx,ny,nz,s,sl1,sl2,rand1,rand2)
-		do istep = 1,nsteps
+		do istep = nstart,nstop
 		 naccept = 0!(:,:,:) = 0
 		 nflip = 0!(:,:,:) = 0
 		 !do itry = 1,n3
@@ -127,9 +127,9 @@ module chll_mod
 		deallocate(rand1,rand2)
 	end subroutine run
 
-	subroutine step(istep,nx,ny,nz,s,dope,rand1,rand2,sl1,sl2,KK,d,kbt,ni,nj,nk,nsub) bind(c, name="step")
+	subroutine step(istep,nx,ny,nz,s,dope,rand1,rand2,sl1,sl2,KK,d,kbt,ni,nj,nk,nsub,nout) bind(c, name="step")
 		implicit none
-		integer(c_int), intent(in) :: istep,ni,nj,nk,nsub
+		integer(c_int), intent(in) :: istep,ni,nj,nk,nsub,nout
 		real(c_double), intent(in out),dimension(ni,nj,nk) :: nx,ny,nz
 		real(c_double), intent(in out) :: KK,d,kbt
 		real(c_double), intent(in out),dimension(nsub,2) :: rand1,rand2
@@ -154,6 +154,10 @@ module chll_mod
 		elseif (paccept.gt.0.6d0) then
 			d = d/0.995
 		endif
+		if ((istep.eq.1).or.(istep.eq.0)) then
+			! Printing header
+			 write(*,'(A, 5(6X, A))') "Steps", "Energy", "E. excess", "Paccept", "Faccept", "D"
+		endif
 		if (mod(istep,100).eq.0) then
 			faccept = float(nflip)/float(n3)
 			! calculate total energy
@@ -161,6 +165,8 @@ module chll_mod
 			e_excess = sum(float(s))/float(ni*nj*nk)
 			write(*,'(I5, 5(1X, F12.6))') istep, total_energy, e_excess, paccept, faccept, d
 		endif
+		!$acc update host(nx,ny,nz,s) if(mod(istep,nout).eq.0)
+			
 	end subroutine step
 
 	subroutine evolve(sl,nx,ny,nz,s,rand1,rand2,KK,d,kbt,nsub,naccept,nflip,ni,nj,nk)
