@@ -137,9 +137,22 @@ class ChLLSim:
 			else:
 				print(f"ERROR: '{data_folder}' does not exist.")
 				exit()
+
+	def save_params(self,nsteps,nout):
+		params_name = self.name + self.name+"_params.txt"
+		f = open(os.path.join(self.simpath,params_name),"w")
+		f.write(self.name + "\n")
+		f.write("nsteps = "+str(nsteps)+" nout = "+ str(nout)+"\n")
+		f.write("ni,nj,nk = "+str(self.ni)+" "+str(self.nj)+" "+str(self.nk)+"\n")
+		f.write("kbt = "+str(self.kbt)+"\n")
+		f.write("d = "+str(self.d)+"\n")
+		f.write("KK = "+str(self.KK)+"\n")
+		f.wrote("rho = "+str(self.rho)+"\n")
+		f.close()
 			
 		
 	def run(self,nsteps,nout,save=False):
+		self.save_params(self,nsteps,nout)
 		self.msteps = np.zeros((int(nsteps/nout)),dtype=np.int32,order='F')
 		self.m = np.zeros((int(nsteps/nout),5),dtype=np.float64, order='F')
 		print("> RUNNING")
