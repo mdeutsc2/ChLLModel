@@ -111,10 +111,12 @@ module chll_mod
 		 call evolve(sl2,nx,ny,nz,s,rand1,rand2,KK,d,kbt,nsub,naccept,nflip,ni,nj,nk)
 		 !paccept = float(sum(naccept))/float(n3) ! % of accepted director rotation
 		 paccept = float(naccept)/float(n3)
+		 if (istep .lt. 10000) then
 		 if (paccept.lt.0.4d0) then
-			d = d*0.995
+		 	d = d*0.995
 		 elseif (paccept.gt.0.6d0) then
-			d = d/0.995
+		 	d = d/0.995
+		 endif
 		 endif
 		 if (mod(istep,nout).eq.0) then
 			!faccept = float(sum(nflip))/float(n3)

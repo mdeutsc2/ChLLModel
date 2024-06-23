@@ -147,12 +147,12 @@ class ChLLSim:
 		f.write("kbt = "+str(self.kbt)+"\n")
 		f.write("d = "+str(self.d)+"\n")
 		f.write("KK = "+str(self.KK)+"\n")
-		f.wrote("rho = "+str(self.rho)+"\n")
+		f.write("rho = "+str(self.rho)+"\n")
 		f.close()
 			
 		
 	def run(self,nsteps,nout,save=False):
-		self.save_params(self,nsteps,nout)
+		self.save_params(nsteps,nout)
 		self.msteps = np.zeros((int(nsteps/nout)),dtype=np.int32,order='F')
 		self.m = np.zeros((int(nsteps/nout),5),dtype=np.float64, order='F')
 		print("> RUNNING")
