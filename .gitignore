@@ -29,7 +29,7 @@ Manifest.toml
 *.vti
 *.xyz
 *.xyzv
-./data/*
+data/*
 *.npz
 *.png
 *.avi
