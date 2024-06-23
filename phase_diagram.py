@@ -20,6 +20,14 @@ def init_aligned(sim):
 	sim.ny[:,:,:] = 0.0
 	sim.nz[:,:,:] = 0.0
 
+for temp in np.arange(0.05,1.51,0.05):
+	K = 0.5
+	simename = "phasediag_alignedlong_K"+str(round(K,3))+"_kbt"+str(round(temp,5))
+	sim = chll.ChLLSim(name = simename,ni=64,nj=64,nk=64,kbt=temp,d = 0.01,KK = K,rho = 0.0)
+	init_aligned(sim)
+	sim.init()
+	sim.run(50000,50,save=True)
+	sim.plot_config()
 """
 for temp in np.arange(0.05,1.51,0.05):
 	for K in np.arange(0.1,1.1,0.1):
@@ -29,7 +37,7 @@ for temp in np.arange(0.05,1.51,0.05):
 		sim.init()
 		sim.run(10000,50,save=True)
 		sim.plot_config()
-"""	
+
 for temp in np.arange(0.05,1.51,0.05):
 	for K in np.arange(0.01,0.11,0.01):
 		simename = "phasediag_aligned_K"+str(round(K,3))+"_kbt"+str(round(temp,5))
@@ -74,3 +82,4 @@ for temp in np.arange(0.05,1.51,0.05):
 		sim.init()
 		sim.run(10000,50,save=True)
 		sim.plot_config()
+"""
