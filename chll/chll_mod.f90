@@ -95,7 +95,7 @@ module chll_mod
 		allocate(rand1(nsub,2))
 		allocate(rand2(nsub,2))
 		! Printing header
-		if (nstart .eq. 1) write(*,'(A, 5(6X, A))') "Steps", "Energy", "E. excess", "Paccept", "Faccept", "D"
+		if (nstart .eq. 1) write(*,'(A, 5(6X, A))') "Steps ", "Energy", "E. excess", "Paccept", "Faccept", "D"
 		!$acc enter data copyin(nx,ny,nz,s,sl1,sl2,rand1,rand2)
 		do istep = nstart,nstop
 		 naccept = 0!(:,:,:) = 0
@@ -125,7 +125,7 @@ module chll_mod
 			total_energy = etot(nx,ny,nz,s,KK,ni,nj,nk)
 			!$acc update host(s)
 			e_excess = sum(float(s))/float(ni*nj*nk)
-			write(*,'(I5, 5(1X, F12.6))') istep, total_energy, e_excess, paccept, faccept, d
+			write(*,'(I6, 5(1X, F12.6))') istep, total_energy, e_excess, paccept, faccept, d
 			msteps(m_count) = istep
 			m(m_count,1) = total_energy
 			m(m_count,2) = e_excess
