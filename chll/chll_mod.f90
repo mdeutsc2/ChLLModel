@@ -173,14 +173,14 @@ module chll_mod
 		endif
 		if ((istep.eq.1).or.(istep.eq.0)) then
 			! Printing header
-			 write(*,'(A, 5(6X, A))') "Steps", "Energy", "E. excess", "Paccept", "Faccept", "D"
+			 write(*,'(A, 5(6X, A))') "Steps ", "Energy", "E. excess", "Paccept", "Faccept", "D"
 		endif
 		if (mod(istep,100).eq.0) then
 			faccept = float(nflip)/float(n3)
 			! calculate total energy
 			total_energy = etot(nx,ny,nz,s,KK,ni,nj,nk)
 			e_excess = sum(float(s))/float(ni*nj*nk)
-			write(*,'(I5, 5(1X, F12.6))') istep, total_energy, e_excess, paccept, faccept, d
+			write(*,'(I6, 5(1X, F12.6))') istep, total_energy, e_excess, paccept, faccept, d
 		endif
 		!$acc update host(nx,ny,nz,s) if(mod(istep,nout).eq.0)
 			
