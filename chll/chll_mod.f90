@@ -87,12 +87,12 @@ module chll_mod
 		real(c_double), intent(in out), dimension((1+nstop-nstart)/nout,5) :: m ! measurables
 		integer(c_int) :: naccept,nflip,istep,nsub,n3,m_count
 		real(c_double) :: paccept,faccept,total_energy,e_excess
-		real(c_double),allocatable :: rand1(:,:),rand2(:,:)
+		real(c_double),allocatable :: rand1(:),rand2(:,:)
 
 		n3 = ni*nj*nk
 		nsub = n3/2
 		m_count = 1
-		allocate(rand1(nsub,2))
+		allocate(rand1(nsub))
 		allocate(rand2(nsub,2))
 		! Printing header
 		if (nstart .eq. 1) write(*,'(A, 5(6X, A))') "Steps ", "Energy", "E. excess", "Paccept", "Faccept", "D"
