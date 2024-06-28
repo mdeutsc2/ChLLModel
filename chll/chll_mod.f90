@@ -149,7 +149,8 @@ module chll_mod
 		integer(c_int), intent(in) :: istep,ni,nj,nk,nsub,nout
 		real(c_double), intent(in out),dimension(ni,nj,nk) :: nx,ny,nz
 		real(c_double), intent(in out) :: KK,d,kbt
-		real(c_double), intent(in out),dimension(nsub,2) :: rand1,rand2
+		real(c_double), intent(in out),dimension(nsub,2) :: rand2 ! random numbers for metropolis
+		real(c_double), intent(in out),dimension(nsub) :: rand1 ! random numbers for vectors
 		integer(c_int), intent(in out),dimension(ni,nj,nk) :: s,dope
 		integer(c_int), intent(in out), dimension(nsub) :: sl1,sl2
 		integer(c_int) :: naccept,nflip,n3
@@ -191,7 +192,7 @@ module chll_mod
 		integer(c_int), intent(in) :: sl(:),nsub
 		real(c_double),intent(in out) :: nx(:,:,:),ny(:,:,:),nz(:,:,:)
 		integer(c_int), intent(in out) :: s(:,:,:),naccept,nflip
-		real(c_double),intent(in) :: KK,d,rand1(:,:),rand2(:,:),kbt
+		real(c_double),intent(in) :: KK,d,rand1(:),rand2(:,:),kbt
 		integer(c_int),intent(in) :: ni,nj,nk
 		real(c_double) :: dcosphi,dsinphi,enew,eold,nnx,nny,nnz,ux,uy,uz,vx,vy,vz,xxnew,yynew,zznew,rsq,phi
 		integer(c_int) :: itry,i,j,k,ip1,im1,jp1,jm1,kp1,km1,snew,index
@@ -221,7 +222,7 @@ module chll_mod
 			eold = energy(nx,ny,nz,nnx,nny,nnz,s(i,j,k),s,KK,i,j,k,ip1,im1,jp1,jm1,kp1,km1,ni,nj,nk)
 			! rotate the director at site i,j,k to get trial director (stored in nnx,nny,nnz)
 			if (abs(nnz).gt.0.999d0) then
-			   phi = rand1(itry,1)*twopi
+			   phi = rand1(itry)*twopi
 			   xxnew = nnx+d*cos(phi)
 			   yynew = nny+d*sin(phi)
 			   zznew = nnz
@@ -244,7 +245,7 @@ module chll_mod
 			   vx = vx/rsq
 			   vy = vy/rsq
 			   vz = vz/rsq
-			   phi = rand1(itry,2)*twopi
+			   phi = rand1(itry)*twopi
 			   dcosphi = d*cos(phi)
 			   dsinphi = d*sin(phi)
 			   nnx = nnx+dcosphi*ux + dsinphi*vx
