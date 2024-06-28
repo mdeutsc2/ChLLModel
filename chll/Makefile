@@ -4,8 +4,8 @@
 
 #NVFORTRAN
 FC = nvfortran
-#FFLAGS = -acc=gpu -fast -Minfo=all -Mconcur -Mnobounds -acclibs -Bstatic-nvidia
-FFLAGS = -acc=multicore -fast -Minfo=all -Mconcur=cncall -Minline=reshape -Mnobounds -acclibs
+FFLAGS = -acc=gpu -fast -Minfo=all -Mconcur -Mnobounds -acclibs -Bstatic-nvidia
+#FFLAGS = -acc=multicore -fast -Minfo=all -Mconcur=cncall -Minline=reshape -Mnobounds -acclibs
 #F2PYFLAGS = -acc=gpu -fast -Minfo=all -Mconcur -Mnobounds -acclibs -Bstatic-nvidia
 F2PYFLAGS = -acc=multicore -fast -Minfo=all -Mconcur=cncall -Minline=reshape -Mnobounds -acclibs
 
