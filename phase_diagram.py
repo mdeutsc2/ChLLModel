@@ -21,7 +21,6 @@ def init_aligned(sim):
 	sim.nz[:,:,:] = 0.0
 
 
-
 for temp in np.arange(0.05,1.51,0.05):
 	for K in np.arange(0.0,1.1,0.1):
 		simename = "phasediag_alignedlong2_K"+str(round(K,3))+"_kbt"+str(round(temp,5))
@@ -48,6 +47,7 @@ for temp in np.arange(0.05,1.51,0.05):
 		sim.init()
 		sim.run(200000,50,save=True)
 		sim.plot_config()
+
 """
 for temp in np.arange(0.05,1.51,0.05):
 	for K in np.arange(0.0,1.1,0.1):
