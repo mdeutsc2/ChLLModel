@@ -1,7 +1,8 @@
+from mpi4py import MPI
+from cupy import cuda
 from chll import chll
 import numpy as np
 import matplotlib.pyplot as plt
-from multiprocessing import Pool, current_process, Queue
 
 def init_random(sim):
 	for i in range(sim.ni):
@@ -21,51 +22,20 @@ def init_aligned(sim):
 	sim.ny[:,:,:] = 0.0
 	sim.nz[:,:,:] = 0.0
 
-def sim_wrapper(i):
-	gpu_id = queue.get()
-	try:
-		sim = chll.ChllSim(name="gmpu_test"+str(i),ni=16,nj=16,nk=16,kbt=0.05,d=0.01,KK=0.1,rho=0.0)
-		init_aligned(sim)
-		sim.init()
-		sim.run(1000,save=False)
-	finally:
-		queue.put(gpu_id)
 
-queue = Queue()
-for gpu_ids in range(2):
-	queue.put(gpuids)
+mpi_comm = MPI.COMM_WORLD
+mpi_rank = mpi_comm.Get_rank()
+mpi_size = mpi_comm.Get_size()
 
-pool = Pool(processes = 2)
-for _ in pool.imap_unordered(sim_wrapper,range(2)):
-	pass
-pool.close()
-pool.join()
-	
-"""
-for temp in np.arange(0.05,1.51,0.05):
-	for K in np.arange(0.0,1.1,0.1):
-		simename = "phasediag_alignedlong2_K"+str(round(K,3))+"_kbt"+str(round(temp,5))
-		sim = chll.ChLLSim(name = simename,ni=64,nj=64,nk=64,kbt=temp,d = 0.01,KK = K,rho = 0.0)
-		init_aligned(sim)
-		sim.init()
-		sim.run(200000,50,save=True)
-		sim.plot_config()
+gpu_id = mpi_rank % cuda.runtime.getDeviceCount()
+print("Rank: ",mpi_rank,"/",mpi_size," gpu_id ",gpu_id)
+with cuda.Device(gpu_id):
+        i = mpi_rank+1
+        sim = chll.ChLLSim(name="gmpu_test"+str(i),ni=64,nj=64,nk=64,kbt=0.05,d=0.01,KK=0.1,rho=0.0)
+        init_aligned(sim)
+        sim.init()
+        sim.run(1000,50,save=False)
+mpi_comm.Barrier()
 
-for temp in np.arange(0.05,1.51,0.05):
-	for K in np.arange(0.0,0.11,0.01):
-		simename = "phasediag_alignedlong2_K"+str(round(K,3))+"_kbt"+str(round(temp,5))
-		sim = chll.ChLLSim(name = simename,ni=64,nj=64,nk=64,kbt=temp,d = 0.01,KK = K,rho = 0.0)
-		init_aligned(sim)
-		sim.init()
-		sim.run(200000,50,save=True)
-		sim.plot_config()
 
-for temp in np.arange(0.05,1.51,0.05):
-	for K in np.arange(0.0,0.011,0.001):
-		simename = "phasediag_alignedlong2_K"+str(round(K,3))+"_kbt"+str(round(temp,5))
-		sim = chll.ChLLSim(name = simename,ni=64,nj=64,nk=64,kbt=temp,d = 0.01,KK = K,rho = 0.0)
-		init_aligned(sim)
-		sim.init()
-		sim.run(200000,50,save=True)
-		sim.plot_config()
-"""
+
