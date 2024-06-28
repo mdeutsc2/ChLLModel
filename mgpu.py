@@ -28,12 +28,16 @@ mpi_rank = mpi_comm.Get_rank()
 mpi_size = mpi_comm.Get_size()
 
 gpu_id = mpi_rank % cuda.runtime.getDeviceCount()
-print("Rank: ",mpi_rank,"/",mpi_size," gpu_id ",gpu_id)
       
-for iK in np.arange(0.0,2.1,0.25)[mpi_rank::2]:
-        for temp in np.arange(0.05,1.251,0.05):
-                print("Running: K=",iK," kbt=",temp," on ", mpi_rank)
-
+for K in np.arange(0.0,2.1,0.25)[mpi_rank::2]:
+	for temp in np.arange(0.05,1.251,0.05):
+		with cuda.Device(gpu_id):
+			simname = "phasediag_alignedlong4_K"+str(round(iK,3))+"_kbt"+str(round(temp,5))
+			sim = chll.ChLLSim(name = simname,ni=64,nj=64,nk=64,kbt=temp,d = 0.01,KK = iK,rho = 0.0)
+			init_aligned(sim)
+			sim.init()
+			sim.run(400000,100,save=True)
+			sim.plot_config()
 
 """
 with cuda.Device(gpu_id):
