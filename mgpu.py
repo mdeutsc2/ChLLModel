@@ -29,12 +29,20 @@ mpi_size = mpi_comm.Get_size()
 
 gpu_id = mpi_rank % cuda.runtime.getDeviceCount()
 print("Rank: ",mpi_rank,"/",mpi_size," gpu_id ",gpu_id)
+      
+for iK in np.arange(0.0,2.1,0.25)[mpi_rank::2]:
+        for temp in np.arange(0.05,1.251,0.05):
+                print("Running: K=",iK," kbt=",temp," on ", mpi_rank)
+
+
+"""
 with cuda.Device(gpu_id):
         i = mpi_rank+1
         sim = chll.ChLLSim(name="gmpu_test"+str(i),ni=64,nj=64,nk=64,kbt=0.05,d=0.01,KK=0.1,rho=0.0)
         init_aligned(sim)
         sim.init()
         sim.run(1000,50,save=False)
+"""
 mpi_comm.Barrier()
 
 
