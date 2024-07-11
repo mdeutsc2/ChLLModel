@@ -29,11 +29,12 @@ sim = chll.ChLLSim(name = "test"+str(i),
 			  kbt=0.05,
 			  d = 0.01,
 			  KK = 1.0,
+			  g = 0.0,
 			  rho = 0.0,overwrite=True)
 
-init_random(sim)
+init_aligned(sim)
 sim.init()
-sim.run(120000,50,save=False)
+sim.run(250,50,save=False)
 sim.plot_config()
 #sim.output_old()
 	
