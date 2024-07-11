@@ -14,6 +14,7 @@ program chll
   real(c_double) :: d = 0.01d0 ! size of spin rotation perturbation
   real(c_double) :: KK = 1.0d0 !
   real(c_double) :: rho=0.0d0 ! density of chiral dopant
+  real(c_double) :: g = 0.0d0 ! 
   real(c_double),allocatable :: rhoz(:) !measuring density of chiral in each z-slice
   real(c_double) :: cosphi,sinphi,costh,sinth,phi,pi,twopi,rnd
   real(c_double) :: faccept,e_excess,paccept,total_energy
@@ -55,7 +56,7 @@ program chll
 	
   call init(nx,ny,nz,s,dope,sl1,sl2,ni,nj,nk,nsub)
   print*,"init done!"
-  call run(1,nsteps,nx,ny,nz,s,dope,sl1,sl2,KK,d,kbt,ni,nj,nk,nsub)
+  call run(1,nsteps,nx,ny,nz,s,dope,sl1,sl2,g,KK,d,kbt,ni,nj,nk,nsub)
   !call output(nx,ny,nz,s,ni,nj,nk)
   !deallocate(nx,ny,nz,nflip,naccept,s,dope)
   !deallocate(nx,ny,nz,s,dope)
