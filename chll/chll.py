@@ -150,6 +150,7 @@ class ChLLSim:
 		f.write("kbt = "+str(self.kbt)+"\n")
 		f.write("d = "+str(self.d)+"\n")
 		f.write("KK = "+str(self.KK)+"\n")
+		f.write("g = "+str(self.g) + "\n")
 		f.write("rho = "+str(self.rho)+"\n")
 		f.close()
 			
