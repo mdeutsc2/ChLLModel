@@ -1,0 +1,45 @@
+import os,time
+import numpy as np
+import taichi as ti
+
+class ChLLSim:
+        def __init__(self,ni,nj,nk,kbt,d,KK,g,rho,name=None,overwrite=False):
+                # parameters
+                self.name = name
+                self.ni = ni
+                self.nj = nj
+                self.nk = nk
+                self.kbt = kbt
+                self.d = d
+                self.KK = KK
+                self.g = g
+                self.rho = rho
+
+                # internal parameters
+                self.overwrite=overwrite
+                self.simpath=None
+                self.nsub = int((self.ni*self.nk*self.nk)/2)
+
+                #arrays
+                self.nx = ti.ndarray(dtype=float, shape=(self.ni, self.nj, self.nk))
+                self.ny = ti.ndarray(dtype=float, shape=(self.ni, self.nj, self.nk))
+                self.nz = ti.ndarray(dtype=float, shape=(self.ni, self.nj, self.nk))
+                self.s = ti.ndarray(dtype=int, shape=(self.ni, self.nj, self.nk))
+                self.dope = ti.ndarray(dtype=int, shape=(self.ni,self.nj,self.nk))
+                self.sl1 = ti.ndarray(dtype=int, shape=(self.nsub))
+                self.sl2 = ti.ndarray(dtype=int, shape=(self.nsub))
+
+                self.m = None
+                self.msteps = None
+                #self.setup_folders()
+
+        def init(self):
+                s_init = np.random.choice([-1,1],(self.ni,self.nj,self.nk),dtype=np.int32)
+                s.from_numpy(s_init)
+                
+                
+
+if (__name__ == "__main__"):
+        ti.init(arch=ti.cpu,default_ip=ti.i64, default_fp=ti.f64)
+        sim = ChLLSim(ni=64,nj=64,nk=64,kbt=0.5,d = 0.1,KK=0.0,g=0.0,rho=0.0,name="test")
+        print("Done!")

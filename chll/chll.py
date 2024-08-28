@@ -35,24 +35,6 @@ ftn_run.argtypes = [ct.POINTER(ct.c_int),ct.POINTER(ct.c_int), ct.POINTER(ct.c_i
 					 ctypeslib.ndpointer(dtype=np.float64,ndim=2,flags='F_CONTIGUOUS')]
 ftn_run.restype = None
 
-ftn_step = libchll_mod.step
-ftn_step.argtypes = [ct.POINTER(ct.c_int), #istep
-					 ctypeslib.ndpointer(dtype=np.float64,ndim=3,flags='F_CONTIGUOUS'), # nx
-					 ctypeslib.ndpointer(dtype=np.float64,ndim=3,flags='F_CONTIGUOUS'), # ny
-					 ctypeslib.ndpointer(dtype=np.float64,ndim=3,flags='F_CONTIGUOUS'), # nz
-					 ctypeslib.ndpointer(dtype=np.int32,ndim=3,flags='F_CONTIGUOUS'),	# s
-					 ctypeslib.ndpointer(dtype=np.int32,ndim=3,flags='F_CONTIGUOUS'),	# dope
-					 ctypeslib.ndpointer(dtype=np.float64,ndim=2,flags='F_CONTIGUOUS'), # rand1
-					 ctypeslib.ndpointer(dtype=np.float64,ndim=2,flags='F_CONTIGUOUS'), # rand2
-					 ctypeslib.ndpointer(dtype=np.int32,ndim=1,flags='F_CONTIGUOUS'),	# sl1
-					 ctypeslib.ndpointer(dtype=np.int32,ndim=1,flags='F_CONTIGUOUS'),	# sl2
-					 ct.POINTER(ct.c_double), # g
-					 ct.POINTER(ct.c_double), # KK
-					 ct.POINTER(ct.c_double), # d
-					 ct.POINTER(ct.c_double), # kbt
-					 ct.POINTER(ct.c_int),ct.POINTER(ct.c_int),ct.POINTER(ct.c_int),ct.POINTER(ct.c_int),ct.POINTER(ct.c_int)]
-ftn_step.restype = None
-
 class ChLLSim:
 	def __init__(self,ni,nj,nk,kbt,d,KK,g,rho,name=None,overwrite=False):
 		# parameters

@@ -38,15 +38,6 @@ for K in np.arange(0.0,2.1,0.25)[mpi_rank::mpi_size]:
 			sim.init()
 			sim.run(10000,100,save=True)
 			sim.plot_config()
-
-"""
-with cuda.Device(gpu_id):
-        i = mpi_rank+1
-        sim = chll.ChLLSim(name="gmpu_test"+str(i),ni=64,nj=64,nk=64,kbt=0.05,d=0.01,KK=0.1,rho=0.0)
-        init_aligned(sim)
-        sim.init()
-        sim.run(1000,50,save=False)
-"""
 mpi_comm.Barrier()
 
 
