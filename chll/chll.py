@@ -81,13 +81,17 @@ class ChLLSim:
 		if not self.sl2.flags['F_CONTIGUOUS']:
 			self.sl1 = np.zeros(int((self.ni*self.nj*self.nk)/2),dtype=np.int32,order='F')
 
-	def init(self):
-		for i in range(self.ni):
-			for j in range(self.nj):
-				for k in range(self.nk):
-					self.s[i,j,k] = 1
-					if np.random.rand() <= 0.5:
-						self.s[i,j,k] = -1
+	def init(self,init_s = None):
+		if not init_s:
+			for i in range(self.ni):
+				for j in range(self.nj):
+					for k in range(self.nk):
+						self.s[i,j,k] = 1
+						if np.random.rand() <= 0.5:
+							self.s[i,j,k] = -1
+		else:
+			self.s[:,:,:] = init_s
+			
 		if ((np.mean(np.sqrt(self.nx*self.nx + self.ny*self.ny + self.nz*self.nz))) == 0.0):
 			print("> Nx,Ny,Nz not initialized, setting nx[:,:,:] = 1.0")
 			for i in range(self.ni):
