@@ -83,27 +83,25 @@ class ChLLSim:
 
 	def init_rand_s(self):
 	    for i in range(self.ni):
-		for j in range(self.nj):
-		    for k in range(self.nk):
-			self.s[i,j,k] = 1
-			if np.random.rand() < 0.5:
-			    self.s[i,j,k] = -1
+			for j in range(self.nj):
+		    	for k in range(self.nk):
+					self.s[i,j,k] = 1
+					if np.random.rand() < 0.5:
+			    		self.s[i,j,k] = -1
 	    if ((np.mean(np.sqrt(self.nx*self.nx+self.ny*self.ny+self.nz*self.nz))) == 0.0):
-		print("> Nx,Ny,Nz not initialized, setting nx[:,:,:] = 1.0")
-		for i in range(self.ni):
-		    for j in range(self.nj):
-			for k in range(self.nk):
-			    self.nx[i,j,k] = 1.0
-			    self.ny[i,j,k] = 0.0
-			    self.nz[i,j,k] = 0.0
-
+			print("> Nx,Ny,Nz not initialized, setting nx[:,:,:] = 1.0")
+			for i in range(self.ni):
+		    	for j in range(self.nj):
+					for k in range(self.nk):
+			    		self.nx[i,j,k] = 1.0
+			    		self.ny[i,j,k] = 0.0
+			    		self.nz[i,j,k] = 0.0
 	    ftn_init(self.nx,self.ny,self.nz,self.s,self.dope.self.sl1,self.sl2,
 		    ct.c_int(self.ni),ct.c_int(self.nj),ct.c_int(self.nk),ct.c_int(self.nsub))
 	    print("> Init Done!")
 
 	def init_with_s(self,init_s):
 		self.s[:,:,:] = init_s
-			
 		if ((np.mean(np.sqrt(self.nx*self.nx + self.ny*self.ny + self.nz*self.nz))) == 0.0):
 			print("> Nx,Ny,Nz not initialized, setting nx[:,:,:] = 1.0")
 			for i in range(self.ni):
