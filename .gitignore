@@ -33,10 +33,10 @@ data/**
 *.npz
 .avi
 .mp4
-*/.vscode/
+.vscode
 ._*
-*.ipynb_checkpoints/
-*.virtual_documents/
-*.jupyter/
-__pycache__/
+.ipynb_checkpoints
+.virtual_documents
+.jupyter/
+__pycache__
 .DS_Store
