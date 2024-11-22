@@ -23,7 +23,7 @@ def init_aligned(sim):
 
 K = 1.0
 for temp in np.arange(0.05,0.51,0.05):
-        for g in np.arange(0.0,0.251,0.1):
+        for g in np.arange(0.05,0.251,0.1):
                 simename = "gfield2_K"+str(round(K,3))+"_kbt"+str(round(temp,5))+"_g"+str(round(g,5))
                 sim = chll.ChLLSim(name = simename,ni=64,nj=64,nk=64,kbt=temp,d = 0.01,KK = K,g = g,rho = 0.0)
                 init_random(sim)
