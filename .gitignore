@@ -31,5 +31,12 @@ Manifest.toml
 *.xyzv
 data/**
 *.npz
-*.avi
-*.mp4
+.avi
+.mp4
+*/.vscode/
+._*
+*.ipynb_checkpoints/
+*.virtual_documents/
+*.jupyter/
+__pycache__/
+.DS_Store
