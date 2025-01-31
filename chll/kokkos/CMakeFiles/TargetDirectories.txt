@@ -1,3 +1,0 @@
-/home/matt/DATA/ChLLModel/chll/kokkos/CMakeFiles/test.dir
-/home/matt/DATA/ChLLModel/chll/kokkos/CMakeFiles/edit_cache.dir
-/home/matt/DATA/ChLLModel/chll/kokkos/CMakeFiles/rebuild_cache.dir
