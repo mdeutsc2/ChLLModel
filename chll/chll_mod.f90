@@ -16,32 +16,6 @@ module chll_mod
 	  integer(c_int) :: i,j,k,nsub1,nsub2,idx
 	  pi = 4.0d0*atan(1.0d0)
 	  twopi = 2.0d0*pi
-	  ! setting up initial random state
-	  !do i = 1,ni
-	  !	 do j = 1,nj
-	   !		do k = 1,nk
-		!	   s(i,j,k) = 1
-		!	   call random_number(rnd)
-		!	   if (rnd.le.0.5d0) then
-		!		  s(i,j,k) = -1
-		!	   endif
-		!	   dope(i,j,k) = 0
-		!	   call random_number(rnd)
-		!	   costh = 2.d0*(rnd-0.5)
-		!	   sinth = sqrt(1.d0-costh*costh)
-		!	   call random_number(rnd)
-		!	   phi = rnd*twopi
-		!	   cosphi = cos(phi)
-		!	   sinphi = sin(phi)
-		!	   nx(i,j,k) = sinth*cosphi
-		!	   ny(i,j,k) = sinth*sinphi
-	!		   nz(i,j,k) = costh
-	!		   nx(i,j,k) = 1.0d0
-	!		   ny(i,j,k) = 0.0d0
-	!		   nz(i,j,k) = 0.0d0
-	!		enddo
-	!	 enddo
-	 ! enddo
 
 	  ! create list of site indices for each sublattice, sub1, sub2
 	  nsub1 = 0
@@ -63,7 +37,6 @@ module chll_mod
 	  return
 	end subroutine init
 
-
 	subroutine run(nstart,nstop,nout,nx,ny,nz,s,dope,sl1,sl2,g,KK,d,kbt,ni,nj,nk,nsub,msteps,m) bind(c, name="run")
 		implicit none
 		integer(c_int), intent(in) :: nstart,nstop,ni,nj,nk,nout
@@ -82,6 +55,7 @@ module chll_mod
 		m_count = 1
 		allocate(rand1(nsub))
 		allocate(rand2(nsub,2))
+		call random_seed()!8837199)
 		! Printing header
 		if (nstart .eq. 1) write(*,'(A, 5(6X, A))') "Steps ", "Energy", "E. excess", "Paccept", "Faccept", "D"
 		!$acc enter data copyin(nx,ny,nz,s,sl1,sl2,rand1,rand2)
@@ -92,11 +66,19 @@ module chll_mod
 		 call random_number(rand1)
 		 call random_number(rand2)
 		 !$acc update device(rand1,rand2)
-		 call evolve(sl1,nx,ny,nz,s,rand1,rand2,g,KK,d,kbt,nsub,naccept,nflip,ni,nj,nk)
-		 !$acc update device(rand1,rand2)
+		 !call evolve(sl1,nx,ny,nz,s,rand1,rand2,g,KK,d,kbt,nsub,naccept,nflip,ni,nj,nk)
+		 call evolve_dir(sl1,nx,ny,nz,s,rand1,rand2,g,KK,d,kbt,nsub,naccept,nflip,ni,nj,nk)
 		 call random_number(rand1)
 		 call random_number(rand2)
-		 call evolve(sl2,nx,ny,nz,s,rand1,rand2,g,KK,d,kbt,nsub,naccept,nflip,ni,nj,nk)
+		 !$acc update device(rand1,rand2)
+		 call evolve_dir(sl2,nx,ny,nz,s,rand1,rand2,g,KK,d,kbt,nsub,naccept,nflip,ni,nj,nk)
+		 call random_number(rand2)
+		 !$acc update device(rand2)
+		 !call evolve(sl2,nx,ny,nz,s,rand1,rand2,g,KK,d,kbt,nsub,naccept,nflip,ni,nj,nk)
+		 call evolve_s(sl1,nx,ny,nz,s,rand2,g,KK,d,kbt,nsub,naccept,nflip,ni,nj,nk)
+		 call random_number(rand2)
+		 !$acc update device(rand2)
+		 call evolve_s(sl2,nx,ny,nz,s,rand2,g,KK,d,kbt,nsub,naccept,nflip,ni,nj,nk)
 		 !paccept = float(sum(naccept))/float(n3) ! % of accepted director rotation
 		 paccept = float(naccept)/float(n3)
 		 if (istep .lt. 10000) then
@@ -113,7 +95,7 @@ module chll_mod
 			total_energy = etot(nx,ny,nz,s,g,KK,ni,nj,nk)
 			!$acc update host(s)
 			e_excess = sum(float(s))/float(ni*nj*nk)
-			write(*,'(I6, 5(1X, F12.6))') istep, total_energy, e_excess, paccept, faccept, d
+			write(*,'(I8, 5(1X, F12.6))') istep, total_energy, e_excess, paccept, faccept, d
 			msteps(m_count) = istep
 			m(m_count,1) = total_energy
 			m(m_count,2) = e_excess
@@ -131,49 +113,136 @@ module chll_mod
 		deallocate(rand1,rand2)
 		
 	end subroutine run
-
-	subroutine step(istep,nx,ny,nz,s,dope,rand1,rand2,sl1,sl2,g,KK,d,kbt,ni,nj,nk,nsub,nout) bind(c, name="step")
+	
+	subroutine evolve_dir(sl,nx,ny,nz,s,rand1,rand2,g,KK,d,kbt,nsub,naccept,nflip,ni,nj,nk)
 		implicit none
-		integer(c_int), intent(in) :: istep,ni,nj,nk,nsub,nout
-		real(c_double), intent(in out),dimension(ni,nj,nk) :: nx,ny,nz
-		real(c_double), intent(in out) :: KK,d,kbt,g
-		real(c_double), intent(in out),dimension(nsub,2) :: rand2 ! random numbers for metropolis
-		real(c_double), intent(in out),dimension(nsub) :: rand1 ! random numbers for vectors
-		integer(c_int), intent(in out),dimension(ni,nj,nk) :: s,dope
-		integer(c_int), intent(in out), dimension(nsub) :: sl1,sl2
-		integer(c_int) :: naccept,nflip,n3
-		real(c_double) :: paccept,faccept,total_energy,e_excess
-		naccept = 0
-		nflip = 0
-		n3 = ni*nj*nk
-		call random_number(rand1)
-		call random_number(rand2)
-		!$acc update device(rand1,rand2)
-		call evolve(sl1,nx,ny,nz,s,rand1,rand2,g,KK,d,kbt,nsub,naccept,nflip,ni,nj,nk)
-		!$acc update device(rand1,rand2)
-		call random_number(rand1)
-		call random_number(rand2)
-		call evolve(sl2,nx,ny,nz,s,rand1,rand2,g,KK,d,kbt,nsub,naccept,nflip,ni,nj,nk)
-		paccept = float(naccept)/float(n3)
-		if (paccept.lt.0.4d0) then
-			d = d*0.995
-		elseif (paccept.gt.0.6d0) then
-			d = d/0.995
-		endif
-		if ((istep.eq.1).or.(istep.eq.0)) then
-			! Printing header
-			 write(*,'(A, 5(6X, A))') "Steps ", "Energy", "E. excess", "Paccept", "Faccept", "D"
-		endif
-		if (mod(istep,100).eq.0) then
-			faccept = float(nflip)/float(n3)
-			! calculate total energy
-			total_energy = etot(nx,ny,nz,s,g,KK,ni,nj,nk)
-			e_excess = sum(float(s))/float(ni*nj*nk)
-			write(*,'(I6, 5(1X, F12.6))') istep, total_energy, e_excess, paccept, faccept, d
-		endif
-		!$acc update host(nx,ny,nz,s) if(mod(istep,nout).eq.0)
-			
-	end subroutine step
+		integer(c_int), intent(in) :: sl(:),nsub
+		real(c_double), intent(in out) :: nx(:,:,:),ny(:,:,:),nz(:,:,:)
+		integer(c_int), intent(in out) ::s(:,:,:), naccept,nflip
+		real(c_double), intent(in) :: g,KK,d,rand1(:),rand2(:,:),kbt
+		integer(c_int), intent(in) :: ni,nj,nk
+		real(c_double) :: dcosphi,dsinphi,enew,eold,nnx,nny,nnz,ux,uy,uz,vx,vy,vz,xxnew,yynew,zznew,rsq,phi
+		integer(c_int) :: itry,i,j,k,ip1,im1,jp1,jm1,kp1,km1,snew,index
+		real(c_double) :: dott,crossx,crossy,crossz,sfac,pi,twopi
+	    pi = 4.0d0*datan(1.0d0)
+	    twopi = 2.0d0*pi
+		!$acc parallel loop reduction(+:naccept,nflip) private(ip1,im1,jp1,jm1,kp1,km1,nnx,nny,nnz,dott,crossx,crossy,crossz,eold,enew,sfac) present(nx,ny,nz,s,sl,rand1,rand2)
+		do itry = 1,nsub
+			index = sl(itry)
+			i = 1+mod(index-1,ni)
+			j = 1+int(mod((index-1),(ni*nj))/(ni))
+			k = 1+int((index-1)/(ni*nj))
+			!call evolve_director(i,j,k,nx,ny,nz,s,naccept,kbt,KK,d)
+			ip1 = i+1 !mod(i,ni) + 1
+			im1 = i-1 !mod(i-2+ni,ni)+1
+			jp1 = j+1 !mod(j,nj)+1
+			jm1 = j-1 !mod(j-2+ni,ni)+1
+			kp1 = k + 1
+			km1 = k - 1
+
+			! store the current spin and set energy to zero
+			nnx = nx(i,j,k)
+			nny = ny(i,j,k)
+			nnz = nz(i,j,k)
+			eold = energy(nx,ny,nz,nnx,nny,nnz,s(i,j,k),s,g,KK,i,j,k,ip1,im1,jp1,jm1,kp1,km1,ni,nj,nk)
+			! rotate the director at site i,j,k to get trial director (stored in nnx,nny,nnz)
+			if (abs(nnz).gt.0.999d0) then
+			   phi = rand1(itry)*twopi
+			   xxnew = nnx+d*cos(phi)
+			   yynew = nny+d*sin(phi)
+			   zznew = nnz
+			   rsq = sqrt(xxnew*xxnew+yynew*yynew+zznew*zznew)
+			   nnx = xxnew/rsq
+			   nny = yynew/rsq
+			   nnz = zznew/rsq
+			else
+				ux = -nny
+				uy = nnx
+				uz = 0.0d0
+				rsq = sqrt(ux*ux+uy*uy)
+				ux = ux/rsq
+				uy = uy/rsq
+				uz = uz/rsq
+				vx = -nnz*nnx
+				vy = -nnz*nny
+				vz = nnx*nnx+nny*nny
+				rsq = sqrt(vx*vx+vy*vy+vz*vz)
+				vx = vx/rsq
+				vy = vy/rsq
+				vz = vz/rsq
+				phi = rand1(itry)*twopi
+				dcosphi = d*cos(phi)
+				dsinphi = d*sin(phi)
+				nnx = nnx+dcosphi*ux + dsinphi*vx
+				nny = nny+dcosphi*uy + dsinphi*vy
+				nnz = nnz+dcosphi*uz + dsinphi*vz
+				rsq = sqrt(nnx*nnx+nny*nny+nnz*nnz)
+				nnx = nnx/rsq
+				nny = nny/rsq
+				nnz = nnz/rsq
+			 endif
+			! calculate enew w/ trial spin
+			enew = energy(nx,ny,nz,nnx,nny,nnz,s(i,j,k),s,g,KK,i,j,k,ip1,im1,jp1,jm1,kp1,km1,ni,nj,nk)
+			!print*,i,j,k,eold,enew,enew.lt.eold
+			! metropolis algorithm
+			if (enew.lt.eold) then
+			   nx(i,j,k) = nnx
+			   ny(i,j,k) = nny
+			   nz(i,j,k) = nnz
+			   naccept = naccept + 1
+			 else
+				if (rand2(itry,1).le.exp(-(enew-eold)/kbt)) then
+				  nx(i,j,k) = nnx
+				  ny(i,j,k) = nny
+				  nz(i,j,k) = nnz
+				  naccept = naccept + 1
+				endif
+			 endif
+		enddo
+	end subroutine evolve_dir
+
+	subroutine evolve_s(sl,nx,ny,nz,s,rand2,g,KK,d,kbt,nsub,naccept,nflip,ni,nj,nk)
+		integer(c_int), intent(in) :: sl(:),nsub
+		real(c_double), intent(in out) :: nx(:,:,:),ny(:,:,:),nz(:,:,:)
+		integer(c_int), intent(in out) :: s(:,:,:),naccept,nflip
+		real(c_double),intent(in) :: g,KK,d,rand2(:,:),kbt
+		integer(c_int),intent(in) :: ni,nj,nk
+		real(c_double) :: dcosphi,dsinphi,enew,eold,nnx,nny,nnz,ux,uy,uz,vx,vy,vz,xxnew,yynew,zznew,rsq,phi
+		integer(c_int) :: itry,i,j,k,ip1,im1,jp1,jm1,kp1,km1,snew,index
+		real(c_double) :: dott,crossx,crossy,crossz,sfac,pi,twopi
+		!$acc parallel loop reduction(+:naccept,nflip) private(ip1,im1,jp1,jm1,kp1,km1,nnx,nny,nnz,dott,crossx,crossy,crossz,eold,enew,sfac) present(nx,ny,nz,s,sl,rand2)
+		do itry = 1,nsub
+			index = sl(itry)
+			i = 1+mod(index-1,ni)
+			j = 1+int(mod((index-1),(ni*nj))/(ni))
+			k = 1+int((index-1)/(ni*nj))
+			!call evolve_director(i,j,k,nx,ny,nz,s,naccept,kbt,KK,d)
+			ip1 = i+1 !mod(i,ni) + 1
+			im1 = i-1 !mod(i-2+ni,ni)+1
+			jp1 = j+1 !mod(j,nj)+1
+			jm1 = j-1 !mod(j-2+ni,ni)+1
+			kp1 = k + 1
+			km1 = k - 1
+			! calculate eold
+			nnx = nx(i,j,k)
+			nny = ny(i,j,k)
+			nnz = nz(i,j,k)
+			eold = energy(nx,ny,nz,nnx,nny,nnz,s(i,j,k),s,g,KK,i,j,k,ip1,im1,jp1,jm1,kp1,km1,ni,nj,nk)
+			! switch chirality and calculate enew
+			snew = -s(i,j,k)
+			enew = energy(nx,ny,nz,nnx,nny,nnz,snew,s,g,KK,i,j,k,ip1,im1,jp1,jm1,kp1,km1,ni,nj,nk)
+			! metropolis
+			if (enew.lt.eold) then
+			   s(i,j,k) = snew
+			   nflip = nflip + 1
+			else
+			   if (rand2(itry,2).le.exp(-(enew-eold)/kbt)) then
+				  s(i,j,k) = snew
+				  nflip = nflip + 1
+			   endif
+			endif
+		 enddo ! end 1st sublattice
+	end subroutine evolve_s
 
 	subroutine evolve(sl,nx,ny,nz,s,rand1,rand2,g,KK,d,kbt,nsub,naccept,nflip,ni,nj,nk)
 		implicit none
@@ -292,7 +361,7 @@ module chll_mod
 	end subroutine evolve
 
 	pure real function energy(nx,ny,nz,nnx,nny,nnz,snew,sold,g,KK,i,j,k,ip1,im1,jp1,jm1,kp1,km1,ni,nj,nk)
-	!$acc routine seq
+		!$acc routine seq
 		implicit none
 		integer(c_int),intent(in) :: i,j,k,ip1,im1,jp1,jm1,kp1,km1,snew,sold(:,:,:),ni,nj,nk
 		real(c_double),intent(in) :: nx(:,:,:),ny(:,:,:),nz(:,:,:),nnx,nny,nnz,KK,g

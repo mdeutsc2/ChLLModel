@@ -96,7 +96,7 @@ class ChLLSim:
 						self.nx[i,j,k] = 1.0
 						self.ny[i,j,k] = 0.0
 						self.nz[i,j,k] = 0.0
-		ftn_init(self.nx,self.ny,self.nz,self.s,self.dope.self.sl1,self.sl2,
+		ftn_init(self.nx,self.ny,self.nz,self.s,self.dope,self.sl1,self.sl2,
 			ct.c_int(self.ni),ct.c_int(self.nj),ct.c_int(self.nk),ct.c_int(self.nsub))
 		print("> Init Done!")
 
@@ -274,10 +274,10 @@ class ChLLSim:
 		fig = plt.figure(figsize=(10,10))
 		ax = fig.add_subplot(111)
 
-		ax.quiver(X,Z,u,w,s_color,pivot='mid',headlength=0,headwidth=0,headaxislength=0,scale_units='xy',scale=0.75,cmap='coolwarm')
+		q = ax.quiver(X,Z,u,w,s_color,pivot='mid',headlength=0,headwidth=0,headaxislength=0,scale_units='xy',scale=0.75,cmap='coolwarm')
 		ax.set_xlabel('X')
 		ax.set_ylabel('Z')
-		ax.set_title(self.name)
+		ax.set_title(self.name); fig.colorbar(q);
 		pngname = self.name+".png"
 		plt.savefig(os.path.join(self.simpath,pngname))
 		
